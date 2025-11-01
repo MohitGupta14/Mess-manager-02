@@ -3,8 +3,6 @@
 # dependencies
 /node_modules
 /dist
-/electron
-/electron.js
 /.pnp
 .pnp.*
 .yarn/*

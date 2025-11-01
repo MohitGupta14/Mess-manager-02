@@ -20,13 +20,35 @@ export default function ConsumptionSummary({ displayModal }: ConsumptionSummaryP
       const memberSnackEntries = snacksAtBarEntries.filter(entry => 
         entry.sharingMembers.includes(member.memberId)
       );
+      // Aggregate liquor items by wineType (name)
+      const liquorAgg: Record<string, { name: string; quantity: number; cost: number }> = {};
+      memberBarEntries.forEach(entry => {
+        const shares = Array.isArray(entry.sharingMembers) ? entry.sharingMembers.length : (entry.sharingMembers ? JSON.parse(entry.sharingMembers).length : 1);
+        const perMemberQty = shares > 0 ? Number(entry.quantity) / shares : Number(entry.quantity || 0);
+        const perMemberCost = Number(entry.costPerMember ?? (entry.totalCost ? (Number(entry.totalCost) / Math.max(1, shares)) : 0));
+        const key = entry.wineType || 'Unknown';
+        if (!liquorAgg[key]) liquorAgg[key] = { name: key, quantity: 0, cost: 0 };
+        liquorAgg[key].quantity += perMemberQty;
+        liquorAgg[key].cost += perMemberCost;
+      });
 
-      const totalLiquorCost = memberBarEntries.reduce((total, entry) => 
-        total + (entry.costPerMember || 0), 0
-      );
-      const totalSnacksCost = memberSnackEntries.reduce((total, entry) => 
-        total + (entry.costPerMember || 0), 0
-      );
+      // Aggregate snack items by itemName
+      const snackAgg: Record<string, { name: string; quantity: number; cost: number }> = {};
+      memberSnackEntries.forEach(entry => {
+        const shares = Array.isArray(entry.sharingMembers) ? entry.sharingMembers.length : (entry.sharingMembers ? JSON.parse(entry.sharingMembers).length : 1);
+        const perMemberQty = shares > 0 ? Number(entry.quantity) / shares : Number(entry.quantity || 0);
+        const perMemberCost = Number(entry.costPerMember ?? (entry.totalItemCost ? (Number(entry.totalItemCost) / Math.max(1, shares)) : 0));
+        const key = entry.itemName || 'Unknown';
+        if (!snackAgg[key]) snackAgg[key] = { name: key, quantity: 0, cost: 0 };
+        snackAgg[key].quantity += perMemberQty;
+        snackAgg[key].cost += perMemberCost;
+      });
+
+      const liquorItems = Object.values(liquorAgg);
+      const snackItems = Object.values(snackAgg);
+
+      const totalLiquorCost = liquorItems.reduce((s, it) => s + it.cost, 0);
+      const totalSnacksCost = snackItems.reduce((s, it) => s + it.cost, 0);
 
       return {
         ...member,
@@ -34,6 +56,8 @@ export default function ConsumptionSummary({ displayModal }: ConsumptionSummaryP
         totalSnacksCost,
         liquorEntries: memberBarEntries.length,
         snackEntries: memberSnackEntries.length,
+        liquorItems,
+        snackItems,
         grandTotal: totalLiquorCost + totalSnacksCost,
       };
     });
@@ -71,8 +95,10 @@ export default function ConsumptionSummary({ displayModal }: ConsumptionSummaryP
           <thead className="bg-blue-50">
             <tr>
               <th className="p-3 text-left text-sm font-semibold">Member Name</th>
+              <th className="p-3 text-left text-sm font-semibold">Liquor Consumed</th>
               <th className="p-3 text-left text-sm font-semibold">Liquor Entries</th>
               <th className="p-3 text-left text-sm font-semibold">Liquor Cost (₹)</th>
+              <th className="p-3 text-left text-sm font-semibold">Snacks Consumed</th>
               <th className="p-3 text-left text-sm font-semibold">Snack Entries</th>
               <th className="p-3 text-left text-sm font-semibold">Snacks Cost (₹)</th>
               <th className="p-3 text-left text-sm font-semibold">Total (₹)</th>
@@ -82,8 +108,22 @@ export default function ConsumptionSummary({ displayModal }: ConsumptionSummaryP
             {consumptionData.map(member => (
               <tr key={member.id} className="border-b hover:bg-gray-50">
                 <td className="p-3 font-medium">{member.name}</td>
+                <td className="p-3">
+                  <ul className="list-disc list-inside text-sm">
+                    {(member.liquorItems || []).map((it: any, i: number) => (
+                      <li key={i}>{it.name}: {Number(it.quantity).toFixed(2)} ({Number(it.cost).toFixed(2)})</li>
+                    ))}
+                  </ul>
+                </td>
                 <td className="p-3 text-center">{member.liquorEntries}</td>
                 <td className="p-3 font-mono">{member.totalLiquorCost.toFixed(2)}</td>
+                <td className="p-3">
+                  <ul className="list-disc list-inside text-sm">
+                    {(member.snackItems || []).map((it: any, i: number) => (
+                      <li key={i}>{it.name}: {Number(it.quantity).toFixed(2)} ({Number(it.cost).toFixed(2)})</li>
+                    ))}
+                  </ul>
+                </td>
                 <td className="p-3 text-center">{member.snackEntries}</td>
                 <td className="p-3 font-mono">{member.totalSnacksCost.toFixed(2)}</td>
                 <td className="p-3 font-mono font-bold">{member.grandTotal.toFixed(2)}</td>
@@ -93,8 +133,10 @@ export default function ConsumptionSummary({ displayModal }: ConsumptionSummaryP
           <tfoot className="bg-blue-100 font-bold">
             <tr>
               <td className="p-3">TOTAL</td>
+              <td className="p-3"></td>
               <td className="p-3 text-center">{barEntries.length}</td>
               <td className="p-3 font-mono">₹{totals.liquor.toFixed(2)}</td>
+              <td className="p-3"></td>
               <td className="p-3 text-center">{snacksAtBarEntries.length}</td>
               <td className="p-3 font-mono">₹{totals.snacks.toFixed(2)}</td>
               <td className="p-3 font-mono">₹{totals.grand.toFixed(2)}</td>

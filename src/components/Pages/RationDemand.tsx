@@ -1,7 +1,7 @@
 // ===== FILE: src/components/Pages/RationDemand.tsx =====
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useMessData } from '@/hooks/useMessData';
 import { StockItem, RationDemand } from '@/lib/types';
 
@@ -13,6 +13,31 @@ export default function RationDemandPage({ displayModal }: RationDemandProps) {
   const { data: stockItems } = useMessData('stockItems');
   const { data: rationDemands, addData } = useMessData('rationDemands');
   
+  // View filters for demands
+  const [viewStartDate, setViewStartDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [viewEndDate, setViewEndDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [filterItem, setFilterItem] = useState<string>('all');
+
+  const demandSummary = useMemo(() => {
+    const filtered = rationDemands.filter((d: RationDemand) => {
+      const date = d.date || '';
+      if (date < viewStartDate || date > viewEndDate) return false;
+      if (filterItem !== 'all' && d.foodItem !== filterItem) return false;
+      return true;
+    });
+
+    const byItem: Record<string, { totalDemand: number; entries: number }> = {};
+    filtered.forEach((d: RationDemand) => {
+      const key = d.foodItem || 'Unknown';
+      if (!byItem[key]) byItem[key] = { totalDemand: 0, entries: 0 };
+      byItem[key].totalDemand += Number(d.totalDemand || 0);
+      byItem[key].entries += 1;
+    });
+
+    const grandTotal = filtered.reduce((s: number, d: RationDemand) => s + Number(d.totalDemand || 0), 0);
+
+    return { filtered, byItem, grandTotal };
+  }, [rationDemands, viewStartDate, viewEndDate, filterItem]);
   const [foodItem, setFoodItem] = useState('');
   const [auth, setAuth] = useState('');
   const [noOfP, setNoOfP] = useState('');
@@ -116,35 +141,58 @@ export default function RationDemandPage({ displayModal }: RationDemandProps) {
         </div>
       </form>
 
-      {rationDemands.length > 0 && (
-        <div className="mt-8 p-4 bg-gray-50 rounded-xl shadow-inner">
-          <h2 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-4">Recent Ration Demands</h2>
+      {/* View Filters & Aggregated Summary */}
+      <div className="mb-6 p-4 bg-white rounded-lg shadow-sm border">
+        <h2 className="text-lg font-semibold mb-3">View Ration Demands</h2>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+          <div className="flex flex-col">
+            <label className="text-sm font-medium mb-1">Start Date</label>
+            <input type="date" value={viewStartDate} onChange={e => setViewStartDate(e.target.value)} className="p-2 border rounded-lg" />
+          </div>
+          <div className="flex flex-col">
+            <label className="text-sm font-medium mb-1">End Date</label>
+            <input type="date" value={viewEndDate} onChange={e => setViewEndDate(e.target.value)} className="p-2 border rounded-lg" />
+          </div>
+          <div className="flex flex-col">
+            <label className="text-sm font-medium mb-1">Filter Item</label>
+            <select value={filterItem} onChange={e => setFilterItem(e.target.value)} className="p-2 border rounded-lg">
+              <option value="all">All Items</option>
+              {availableFoodItems.map(i => (
+                <option key={i.id} value={i.itemName}>{i.itemName}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col">
+            <label className="text-sm font-medium mb-1">Grand Total Demand</label>
+            <div className="p-2 bg-gray-100 rounded-lg">{demandSummary.grandTotal.toFixed(2)}</div>
+          </div>
+        </div>
+
+        {/* Aggregated per-item table */}
+        <div className="mt-4">
+          <h3 className="text-sm font-medium mb-2">Aggregated by Item</h3>
           <div className="overflow-x-auto">
             <table className="min-w-full bg-white border">
               <thead className="bg-blue-50">
                 <tr>
-                  <th className="py-2 px-3 text-left text-xs font-semibold">Date</th>
-                  <th className="py-2 px-3 text-left text-xs font-semibold">Food Item</th>
-                  <th className="py-2 px-3 text-left text-xs font-semibold">Auth Qty</th>
-                  <th className="py-2 px-3 text-left text-xs font-semibold">No of Persons</th>
-                  <th className="py-2 px-3 text-left text-xs font-semibold">Total Demand</th>
+                  <th className="py-2 px-3 text-left text-xs font-semibold">Item</th>
+                  <th className="py-2 px-3 text-right text-xs font-semibold">Entries</th>
+                  <th className="py-2 px-3 text-right text-xs font-semibold">Total Demand</th>
                 </tr>
               </thead>
               <tbody>
-                {rationDemands.map(demand => (
-                  <tr key={demand.id} className="border-b">
-                    <td className="py-2 px-3 text-sm">{demand.date}</td>
-                    <td className="py-2 px-3 text-sm">{demand.foodItem}</td>
-                    <td className="py-2 px-3 text-sm">{demand.auth}</td>
-                    <td className="py-2 px-3 text-sm">{demand.noOfP}</td>
-                    <td className="py-2 px-3 text-sm font-semibold">{demand.totalDemand?.toFixed(2)}</td>
+                {Object.entries(demandSummary.byItem).map(([itemName, val]) => (
+                  <tr key={itemName} className="border-b">
+                    <td className="py-2 px-3 text-sm">{itemName}</td>
+                    <td className="py-2 px-3 text-sm text-right">{val.entries}</td>
+                    <td className="py-2 px-3 text-sm text-right font-semibold">{val.totalDemand.toFixed(2)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

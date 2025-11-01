@@ -2,24 +2,15 @@
 
 import { useState, useMemo } from 'react';
 import { useMessData } from '@/hooks/useMessData';
-import {
-  InwardLogEntry,
-  DailyMessingEntry,
-  BarEntry,
-  SnackEntry,
-  MessMember,
-} from '@/lib/types';
-
 interface MonthlyLedgerProps {
   displayModal: (text: string, type: string) => void;
 }
 
 export default function MonthlyLedger({ displayModal }: MonthlyLedgerProps) {
-  const { data: inwardLog = [] } = useMessData('inwardLog');
   const { data: dailyMessingEntries = [] } = useMessData('dailyMessingEntries');
   const { data: barEntries = [] } = useMessData('barEntries');
   const { data: snacksAtBarEntries = [] } = useMessData('snacksAtBarEntries');
-  const { data: messMembers = [] } = useMessData('messMembers');
+  const { data: stockItems = [] } = useMessData('stockItems');
 
   const [selectedDate, setSelectedDate] = useState({
     month: new Date().getMonth() + 1,
@@ -33,13 +24,9 @@ export default function MonthlyLedger({ displayModal }: MonthlyLedgerProps) {
     }));
   };
 
-  const consolidatedData = useMemo(() => {
+  // Aggregate consumed items for the selected month
+  const consumptionSummary = useMemo(() => {
     const { month, year } = selectedDate;
-
-    const memberMap = messMembers.reduce((acc, member) => {
-      acc[member.memberId] = member.name;
-      return acc;
-    }, {} as Record<string, string>);
 
     const filterByMonth = (entry: { date: string }) => {
       const entryDate = new Date(entry.date);
@@ -49,74 +36,58 @@ export default function MonthlyLedger({ displayModal }: MonthlyLedgerProps) {
       );
     };
 
-    const mappedInward = inwardLog.filter(filterByMonth).map((e) => ({
-      id: e.id,
-      date: e.date,
-      type: e.type || 'Inward Log',
-      description: `${e.quantity} units of ${e.itemName}`,
-      details: `Cost: ₹${e.unitCost || 0}/unit`,
-      amount: e.totalCost || 0,
-    }));
+    // Build stock lookup by id and name
+    const stockById = new Map((stockItems || []).map((s: any) => [s.id, s]));
+    const stockByName = new Map((stockItems || []).map((s: any) => [s.itemName, s]));
 
-    const mappedMessing = dailyMessingEntries.filter(filterByMonth).map((e) => ({
-      id: e.id,
-      date: e.date,
-      type: `Messing (${e.mealType})`,
-      description: `${e.consumedItems?.length || 0} items consumed`,
-      // details: `Members: ${e.membersPresent
-      //   ?.map((id: string | number) => memberMap[id] || id)
-      //   .join(', ')}`,
-      amount: e.totalMealCost || 0,
-    }));
+    const agg: Record<string, { itemName: string; quantity: number; unit?: string; cost: number }> = {};
 
-    const mappedBar = barEntries.filter(filterByMonth).map((e) => ({
-      id: e.id,
-      date: e.date,
-      type: 'Bar Counter',
-      description: `${e.quantity} units of ${e.wineType}`,
-      details: `Members: ${e.sharingMembers
-        ?.map((id: string | number) => memberMap[id] || id)
-        .join(', ')}`,
-      amount: e.totalCost || 0,
-    }));
+    // daily messing consumed items
+    dailyMessingEntries.filter(filterByMonth).forEach((e: any) => {
+      const items = Array.isArray(e.consumedItems) ? e.consumedItems : (typeof e.consumedItems === 'string' ? JSON.parse(e.consumedItems) : []);
+      items.forEach((it: any) => {
+        const rawName = it.itemName || it.itemId || '';
+        const stock = stockById.get(it.itemId) || stockByName.get(it.itemName) || undefined;
+        const unit = stock?.unitOfMeasurement || undefined;
+        const unitCost = Number(stock?.lastUnitCost || 0);
+        const qty = Number(it.quantity || 0);
+        const cost = unitCost * qty;
+        const key = stock?.itemName || rawName || 'Unknown';
+        if (!agg[key]) agg[key] = { itemName: key, quantity: 0, unit, cost: 0 };
+        agg[key].quantity += qty;
+        agg[key].cost += cost;
+      });
+    });
 
-    const mappedSnacks = snacksAtBarEntries.filter(filterByMonth).map((e) => ({
-      id: e.id,
-      date: e.date,
-      type: 'Snacks at Bar',
-      description: `${e.quantity} units of ${e.itemName}`,
-      details: `Members: ${e.sharingMembers
-        ?.map((id: string | number) => memberMap[id] || id)
-        .join(', ')}`,
-      amount: e.totalItemCost || 0,
-    }));
+    // bar entries (liquor)
+    barEntries.filter(filterByMonth).forEach((e: any) => {
+      const key = e.wineType || 'Unknown';
+      const qty = Number(e.quantity || 0);
+      const cost = Number(e.totalCost || e.costPerMember || 0) ;
+      const stock = stockByName.get(key);
+      const unit = stock?.unitOfMeasurement || undefined;
+      if (!agg[key]) agg[key] = { itemName: key, quantity: 0, unit, cost: 0 };
+      agg[key].quantity += qty;
+      agg[key].cost += cost;
+    });
 
-    const allEntries = [
-      ...mappedInward,
-      ...mappedMessing,
-      ...mappedBar,
-      ...mappedSnacks,
-    ];
+    // snacks at bar
+    snacksAtBarEntries.filter(filterByMonth).forEach((e: any) => {
+      const key = e.itemName || 'Unknown';
+      const qty = Number(e.quantity || 0);
+      const cost = Number(e.totalItemCost || e.costPerMember || 0);
+      const stock = stockByName.get(key);
+      const unit = stock?.unitOfMeasurement || undefined;
+      if (!agg[key]) agg[key] = { itemName: key, quantity: 0, unit, cost: 0 };
+      agg[key].quantity += qty;
+      agg[key].cost += cost;
+    });
 
-    allEntries.sort(
-      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-    );
+    const items = Object.values(agg).sort((a, b) => b.cost - a.cost);
+    const grandTotal = items.reduce((s, it) => s + it.cost, 0);
 
-    // Group by date
-    return allEntries.reduce((acc, entry) => {
-      const day = entry.date;
-      if (!acc[day]) acc[day] = [];
-      acc[day].push(entry);
-      return acc;
-    }, {} as Record<string, typeof allEntries>);
-  }, [
-    selectedDate,
-    inwardLog,
-    dailyMessingEntries,
-    barEntries,
-    snacksAtBarEntries,
-    messMembers,
-  ]);
+    return { items, grandTotal };
+  }, [selectedDate, dailyMessingEntries, barEntries, snacksAtBarEntries, stockItems]);
 
   const years = Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i);
   const months = Array.from({ length: 12 }, (_, i) => ({
@@ -160,46 +131,39 @@ export default function MonthlyLedger({ displayModal }: MonthlyLedgerProps) {
       </div>
 
       {/* Ledger Table */}
-      <div>
-        {Object.keys(consolidatedData).length === 0 ? (
-          <p className="text-center text-gray-600">
-            No entries for the selected month.
-          </p>
+      {/* Consumption Summary */}
+      <div className="mb-6 p-4 bg-white rounded-lg shadow-sm border">
+        <h2 className="text-xl font-semibold text-gray-800 mb-3">Consumption Summary for {months.find(m => m.value === selectedDate.month)?.name} {selectedDate.year}</h2>
+        {consumptionSummary.items.length === 0 ? (
+          <p className="text-gray-600">No consumption data for this month.</p>
         ) : (
-          Object.entries(consolidatedData).map(([date, entries]) => (
-            <div key={date} className="mb-6">
-              <h2 className="text-xl font-semibold text-gray-700 mb-4">
-                {new Date(date).toLocaleDateString(undefined, {
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric',
-                })}
-              </h2>
-
-              <table className="min-w-full bg-white border">
-                <thead className="bg-blue-50">
-                  <tr>
-                    <th className="p-3 text-left text-sm font-semibold">Type</th>
-                    <th className="p-3 text-left text-sm font-semibold">Description</th>
-                    <th className="p-3 text-left text-sm font-semibold">Details</th>
-                    <th className="p-3 text-left text-sm font-semibold">Amount (₹)</th>
+          <div className="overflow-x-auto">
+            <table className="min-w-full bg-white border">
+              <thead className="bg-blue-50">
+                <tr>
+                  <th className="p-3 text-left text-sm font-semibold">Item</th>
+                  <th className="p-3 text-right text-sm font-semibold">Quantity</th>
+                  <th className="p-3 text-right text-sm font-semibold">Cost (₹)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {consumptionSummary.items.map((it) => (
+                  <tr key={it.itemName} className="border-b">
+                    <td className="p-3">{it.itemName}</td>
+                    <td className="p-3 text-right">{Number(it.quantity).toFixed(2)}</td>
+                    <td className="p-3 text-right">₹{it.cost.toFixed(2)}</td>
                   </tr>
-                </thead>
-                <tbody>
-                  {entries.map((entry) => (
-                    <tr key={entry.id} className="border-b">
-                      <td className="p-3">{entry.type}</td>
-                      <td className="p-3">{entry.description}</td>
-                      {/* <td className="p-3">{entry.details}</td> */}
-                      <td className="p-3">
-                        {entry.amount ? entry.amount : 'N/A'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ))
+                ))}
+              </tbody>
+              <tfoot className="bg-blue-100 font-bold">
+                <tr>
+                  <td className="p-3">Total</td>
+                  <td className="p-3"></td>
+                  <td className="p-3 text-right">₹{consumptionSummary.grandTotal.toFixed(2)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
         )}
       </div>
     </div>

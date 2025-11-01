@@ -14,7 +14,7 @@ export default function LiquorSummary({ displayModal }: LiquorSummaryProps) {
   const { data: minStockLevels } = useMessData('minStockLevels');
   const [editingItem, setEditingItem] = useState<StockItem | null>(null);
 
-  const liquorItems = stockItems.filter(item => item.itemType === 'Liquor');
+  const liquorItems = stockItems.filter(item => item.type === 'Liquor');
   const sortedItems = [...liquorItems].sort((a, b) => a.itemName.localeCompare(b.itemName));
 
   const getMinStock = (itemName: string) => {
@@ -57,6 +57,7 @@ export default function LiquorSummary({ displayModal }: LiquorSummaryProps) {
                 <tr key={item.id} className={`border-b ${isLow ? 'bg-red-50' : ''}`}>
                   <td className="p-3 font-medium">{item.itemName}</td>
                   <td className="p-3">{item.currentQuantity} {item.unitOfMeasurement}</td>
+                  <td className="p-3">{item.lastUnitCost}</td>
                   <td className="p-3">{(item.currentQuantity * item.lastUnitCost).toFixed(2)}</td>
                   <td className="p-3">{minLevel ?? 'Not set'}</td>
                   <td className="p-3">{isLow ? <span className="text-red-600 font-semibold">Low</span> : 'OK'}</td>

@@ -2,6 +2,9 @@
 
 # dependencies
 /node_modules
+/dist
+/electron
+/electron.js
 /.pnp
 .pnp.*
 .yarn/*
@@ -39,3 +42,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+electron.d.ts
+dist
+

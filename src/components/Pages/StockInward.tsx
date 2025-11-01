@@ -17,9 +17,10 @@ export default function StockInward({ displayModal }: StockInwardProps) {
   const [unitCost, setUnitCost] = useState('0');
   const [dateReceived, setDateReceived] = useState(new Date().toISOString().split('T')[0]);
   const [itemType, setItemType] = useState<'Issue' | 'Non Issue'>('Issue');
+  const [type, setType] = useState('');
 
   useEffect(() => {
-    if (itemType === 'Issue') {
+    if (itemType === 'Non Issue') {
       setUnitCost('0');
     } else {
       setUnitCost('');
@@ -28,69 +29,37 @@ export default function StockInward({ displayModal }: StockInwardProps) {
 
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!itemName || !quantityReceived || !unitOfMeasurement.trim() || unitCost === '') {
-      displayModal('Please fill all required fields', 'error');
+    if (!itemName || !quantityReceived || !unitOfMeasurement.trim() || unitCost === '' || !type) {
+      displayModal('Please fill all required fields including Item Type', 'error');
       return;
     }
 
     const qty = parseFloat(quantityReceived);
     const cost = parseFloat(unitCost);
     
-    // Find existing stock item
-    const existingItem = stockItems.find(item => item.itemName === itemName);
-    
-    if (existingItem) {
-      // Update existing item
-      const newQuantity = existingItem.currentQuantity + qty;
-      const newTotalCost = existingItem.totalCost + (qty * cost);
-      const newAvgCost = newQuantity > 0 ? newTotalCost / newQuantity : 0;
-
-      const result = await updateStock(existingItem.id, {
-        currentQuantity: newQuantity,
-        totalCost: newTotalCost,
-        lastUnitCost: newAvgCost,
-        lastReceivedDate: dateReceived,
-        unitOfMeasurement: unitOfMeasurement.trim(),
-        itemType,
-      });
-
-      if (!result.success) {
-        displayModal(result.error || 'Failed to update stock', 'error');
-        return;
-      }
-    } else {
-      // Add new item
-      const result = await addStock({
-        itemName,
-        currentQuantity: qty,
-        unitOfMeasurement: unitOfMeasurement.trim(),
-        lastUnitCost: cost,
-        lastReceivedDate: dateReceived,
-        totalCost: qty * cost,
-        itemType,
-      });
-
-      if (!result.success) {
-        displayModal(result.error || 'Failed to add stock', 'error');
-        return;
-      }
-    }
-
-    // Add to inward log
-    await addLog({
+    // NOTE: Do not update stock on the client. Server will process the inward log and update stock atomically.
+    // Add to inward log (server will handle adding/updating stockItems)
+    const result = await addLog({
       date: dateReceived,
       itemName,
       quantity: qty,
       unitCost: cost,
       totalCost: qty * cost,
-      type: 'Stock Inward',
+      type
     });
 
-    displayModal(`Successfully updated ${itemName}`, 'success');
+    if (!result.success) {
+      displayModal(result.error || 'Failed to add inward log', 'error');
+      return;
+    }
+
+  displayModal(`Successfully updated ${itemName}`, 'success');
     setItemName('');
     setQuantityReceived('');
     setUnitOfMeasurement('');
     setItemType('Issue');
+    setType(''); // Reset item type to empty
+    setUnitCost('0'); // Reset unit cost to default
   };
 
   return (
@@ -107,6 +76,20 @@ export default function StockInward({ displayModal }: StockInwardProps) {
             className="p-2 border rounded-lg" 
             required 
           />
+        </div>
+         <div className="flex flex-col">
+          <label htmlFor="type" className="text-sm font-medium mb-1">ItemType: <span className="text-red-500">*</span></label>
+          <select 
+            id="type" 
+            value={type} 
+            onChange={(e) => setType(e.target.value)} 
+            className="p-2 border rounded-lg" 
+            required
+          >
+            <option value="">Select item type</option>
+            <option value="grocery">Grocery</option>
+            <option value="snacks">Snacks</option>
+          </select>
         </div>
         <div className="flex flex-col">
           <label htmlFor="itemType" className="text-sm font-medium mb-1">Type: <span className="text-red-500">*</span></label>
@@ -160,11 +143,11 @@ export default function StockInward({ displayModal }: StockInwardProps) {
             id="unitCost" 
             value={unitCost} 
             onChange={(e) => setUnitCost(e.target.value)} 
-            className={`p-2 border rounded-lg ${itemType === 'Issue' ? 'bg-gray-200' : ''}`} 
+            className={`p-2 border rounded-lg ${itemType === 'Non Issue' ? 'bg-gray-200' : ''}`} 
             step="0.01" 
             min="0" 
             required 
-            disabled={itemType === 'Issue'}
+            disabled={itemType === 'Non Issue'}
           />
         </div>
         <div className="flex flex-col">

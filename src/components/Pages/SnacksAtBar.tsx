@@ -49,18 +49,7 @@ export default function SnacksAtBar({ displayModal }: SnacksAtBarProps) {
     const cost = quantity * stockItem.lastUnitCost;
     const costPerMember = cost / sharing.length;
 
-    // Deduct stock
-    const newQuantity = stockItem.currentQuantity - quantity;
-    const newTotalCost = stockItem.totalCost - cost;
-    const newAvgCost = newQuantity > 0 ? newTotalCost / newQuantity : 0;
-
-    await updateStock(stockItem.id, {
-      currentQuantity: newQuantity,
-      totalCost: newTotalCost,
-      lastUnitCost: newAvgCost,
-    });
-
-    // Add snack entry
+    // Add snack entry (server will handle stock deduction)
     const result = await addSnack({
       itemName: item,
       quantity,
@@ -80,7 +69,7 @@ export default function SnacksAtBar({ displayModal }: SnacksAtBarProps) {
     }
   };
 
-  const nonLiquorItems = stockItems.filter(i => i.itemType !== 'Liquor');
+  const snackItems = stockItems.filter(i => i.type === 'snacks');
 
   return (
     <div className="p-6 sm:p-8 rounded-xl w-full bg-white shadow-lg">
@@ -95,8 +84,8 @@ export default function SnacksAtBar({ displayModal }: SnacksAtBarProps) {
               className="p-2 border border-gray-300 rounded-lg w-full shadow-sm" 
               required
             >
-              <option value="">Select Item</option>
-              {nonLiquorItems.map(i => (
+              <option value="">Select Snack Item</option>
+              {snackItems.map(i => (
                 <option key={i.id} value={i.itemName}>{i.itemName}</option>
               ))}
             </select>
@@ -150,14 +139,35 @@ export default function SnacksAtBar({ displayModal }: SnacksAtBarProps) {
                 </tr>
               </thead>
               <tbody>
-                {snacksAtBarEntries.slice(0, 20).map(entry => (
-                  <tr key={entry.id} className="border-b">
-                    <td className="py-2 px-3 text-sm">{entry.date}</td>
-                    <td className="py-2 px-3 text-sm">{entry.itemName}</td>
-                    <td className="py-2 px-3 text-sm">{entry.quantity}</td>
-                    <td className="py-2 px-3 text-sm">{entry.sharingMembers.length}</td>
-                  </tr>
-                ))}
+                {snacksAtBarEntries.slice(0, 20).map(entry => {
+                  // Ensure sharingMembers is an array
+                  const membersList = Array.isArray(entry.sharingMembers)
+                    ? entry.sharingMembers
+                    : typeof entry.sharingMembers === 'string'
+                      ? JSON.parse(entry.sharingMembers)
+                      : [];
+
+                  const memberNames = membersList.map((memberId: string) => {
+                    const member = messMembers.find(m => m.memberId === memberId);
+                    return member ? member.name : memberId;
+                  }).join(', ');
+
+                  return (
+                    <tr key={entry.id} className="border-b hover:bg-gray-50">
+                      <td className="py-2 px-3 text-sm">{entry.date}</td>
+                      <td className="py-2 px-3 text-sm">{entry.itemName}</td>
+                      <td className="py-2 px-3 text-sm">{entry.quantity}</td>
+                      <td className="py-2 px-3 text-sm">
+                        <div className="max-h-20 overflow-y-auto">
+                          {memberNames}
+                          <span className="text-gray-500 text-xs ml-1">
+                            ({membersList.length})
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

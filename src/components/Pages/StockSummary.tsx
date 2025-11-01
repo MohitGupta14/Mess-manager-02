@@ -54,25 +54,25 @@ export default function StockSummary({ displayModal }: StockSummaryProps) {
           <tbody>
             {sortedItems.map((item) => {
               const minLevel = getMinStock(item.itemName);
-              const isLow = typeof minLevel === 'number' && item.currentQuantity < minLevel;
+              const isLow = typeof minLevel === 'number' && Number(item.currentQuantity) < Number(minLevel);
               return (
                 <tr key={item.id} className={`border-b ${isLow ? 'bg-red-50' : ''}`}>
                   <td className="p-3 font-medium">{item.itemName}</td>
                   <td className="p-3">{item.itemType || 'N/A'}</td>
-                  <td className="p-3">{item.currentQuantity} {item.unitOfMeasurement}</td>
-                  <td className="p-3">{Number(item.lastUnitCost)?.toFixed(2) || 'N/A'}</td>
-                  <td className="p-3">{Number(item.totalCost)?.toFixed(2) || 'N/A'}</td>
+                  <td className="p-3">{Number(item.currentQuantity)} {item.unitOfMeasurement}</td>
+                  <td className="p-3">{!isNaN(Number(item.lastUnitCost)) ? Number(item.lastUnitCost).toFixed(2) : 'N/A'}</td>
+                  <td className="p-3">{!isNaN(Number(item.totalCost)) ? Number(item.totalCost).toFixed(2) : 'N/A'}</td>
                   <td className="p-3">{minLevel ?? 'Not set'}</td>
                   <td className="p-3">{isLow ? <span className="text-red-600 font-semibold">Low</span> : 'OK'}</td>
                   <td className="p-3 space-x-2 whitespace-nowrap">
-                    <button 
-                      onClick={() => setEditingItem(item)} 
+                    <button
+                      onClick={() => setEditingItem(item)}
                       className="px-2 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600"
                     >
                       Edit
                     </button>
-                    <button 
-                      onClick={() => handleDelete(item.itemName, item.id)} 
+                    <button
+                      onClick={() => handleDelete(item.itemName, item.id)}
                       className="px-2 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600"
                     >
                       Delete

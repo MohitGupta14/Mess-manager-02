@@ -49,18 +49,7 @@ export default function BarCounter({ displayModal }: BarCounterProps) {
     const totalCost = qty * stockItem.lastUnitCost;
     const costPerMember = totalCost / sharingMembers.length;
 
-    // Deduct stock
-    const newQuantity = stockItem.currentQuantity - qty;
-    const newTotalCost = stockItem.totalCost - totalCost;
-    const newAvgCost = newQuantity > 0 ? newTotalCost / newQuantity : 0;
-
-    await updateStock(stockItem.id, {
-      currentQuantity: newQuantity,
-      totalCost: newTotalCost,
-      lastUnitCost: newAvgCost,
-    });
-
-    // Add bar entry
+    // Add bar entry (server will handle stock deduction)
     const result = await addBar({
       wineType,
       quantity: qty,
@@ -80,7 +69,7 @@ export default function BarCounter({ displayModal }: BarCounterProps) {
     }
   };
 
-  const liquorItems = stockItems.filter(i => i.itemType === 'Liquor');
+  const liquorItems = stockItems.filter(i => i.type === 'Liquor');
 
   return (
     <div className="p-6 sm:p-8 rounded-xl w-full bg-white shadow-lg">
@@ -150,14 +139,35 @@ export default function BarCounter({ displayModal }: BarCounterProps) {
                 </tr>
               </thead>
               <tbody>
-                {barEntries.slice(0, 20).map(entry => (
-                  <tr key={entry.id} className="border-b">
-                    <td className="py-2 px-3 text-sm">{entry.date}</td>
-                    <td className="py-2 px-3 text-sm">{entry.wineType}</td>
-                    <td className="py-2 px-3 text-sm">{entry.quantity}</td>
-                    <td className="py-2 px-3 text-sm">{entry.sharingMembers.length}</td>
-                  </tr>
-                ))}
+                {barEntries.slice(0, 20).map(entry => {
+                  // Ensure sharingMembers is an array
+                  const membersList = Array.isArray(entry.sharingMembers)
+                    ? entry.sharingMembers
+                    : typeof entry.sharingMembers === 'string'
+                      ? JSON.parse(entry.sharingMembers)
+                      : [];
+
+                  const memberNames = membersList.map((memberId: string) => {
+                    const member = messMembers.find(m => m.memberId === memberId);
+                    return member ? member.name : memberId;
+                  }).join(', ');
+
+                  return (
+                    <tr key={entry.id} className="border-b hover:bg-gray-50">
+                      <td className="py-2 px-3 text-sm">{entry.date}</td>
+                      <td className="py-2 px-3 text-sm">{entry.wineType}</td>
+                      <td className="py-2 px-3 text-sm">{entry.quantity}</td>
+                      <td className="py-2 px-3 text-sm">
+                        <div className="max-h-20 overflow-y-auto">
+                          {memberNames}
+                          <span className="text-gray-500 text-xs ml-1">
+                            ({membersList.length})
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

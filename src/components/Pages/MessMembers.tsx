@@ -11,6 +11,7 @@ interface MessMembersProps {
 
 export default function MessMembers({ displayModal }: MessMembersProps) {
   const { data: messMembers, addData, updateData, deleteData } = useMessData('messMembers');
+  console.log('MessMembers data:', messMembers);
   const [form, setForm] = useState({ 
     name: '', 
     contactInfo: '', 

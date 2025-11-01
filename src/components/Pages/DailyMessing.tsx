@@ -3,14 +3,13 @@
 
 import { useState } from 'react';
 import { useMessData } from '@/hooks/useMessData';
-import { StockItem, MessMember, DailyMessingEntry } from '@/lib/types';
 
 interface DailyMessingProps {
   displayModal: (text: string, type: string) => void;
 }
 
 export default function DailyMessing({ displayModal }: DailyMessingProps) {
-  const { data: stockItems, updateData: updateStock } = useMessData('stockItems');
+  const { data: stockItems } = useMessData('stockItems');
   const { data: messMembers } = useMessData('messMembers');
   const { data: dailyMessingEntries, addData: addMessing } = useMessData('dailyMessingEntries');
   
@@ -46,9 +45,8 @@ export default function DailyMessing({ displayModal }: DailyMessingProps) {
       return;
     }
 
-    // Calculate total cost and deduct stock
+    // Calculate total cost (server will handle stock deduction)
     let totalMealCost = 0;
-    const stockUpdates = [];
 
     for (const item of consumedItems) {
       const stockItem = stockItems.find(s => s.itemName === item.itemName);
@@ -57,30 +55,15 @@ export default function DailyMessing({ displayModal }: DailyMessingProps) {
         return;
       }
 
-      if (stockItem.currentQuantity < item.quantity) {
+      // Validate availability client-side; server will enforce as authoritative
+      const quantityNum = Number(item.quantity);
+      if (Number(stockItem.currentQuantity) < quantityNum) {
         displayModal(`Not enough ${item.itemName} in stock!`, 'error');
         return;
       }
 
-      const itemCost = item.quantity * stockItem.lastUnitCost;
+      const itemCost = quantityNum * Number(stockItem.lastUnitCost);
       totalMealCost += itemCost;
-
-      const newQuantity = stockItem.currentQuantity - item.quantity;
-      const newTotalCost = stockItem.totalCost - itemCost;
-      const newAvgCost = newQuantity > 0 ? newTotalCost / newQuantity : 0;
-
-      stockUpdates.push({
-        id: stockItem.id,
-        currentQuantity: newQuantity,
-        totalCost: newTotalCost,
-        lastUnitCost: newAvgCost,
-      });
-    }
-
-    // Update all stock items
-    for (const update of stockUpdates) {
-      const { id, ...data } = update;
-      await updateStock(id, data);
     }
 
     // Add messing entry
@@ -92,7 +75,7 @@ export default function DailyMessing({ displayModal }: DailyMessingProps) {
       membersPresent: members,
     });
 
-    if (result.success) {
+    if (result.success) { 
       displayModal('Messing entry added successfully!', 'success');
       setItems([{ itemName: '', quantity: '' }]);
       setMembers([]);
@@ -201,13 +184,35 @@ export default function DailyMessing({ displayModal }: DailyMessingProps) {
                 </tr>
               </thead>
               <tbody>
-                {dailyMessingEntries.slice(0, 20).map(entry => (
-                  <tr key={entry.id} className="border-b">
-                    <td className="py-2 px-3 text-sm">{entry.date}</td>
-                    <td className="py-2 px-3 text-sm">{entry.mealType}</td>
-                    <td className="py-2 px-3 text-sm">{entry.membersPresent.length}</td>
-                  </tr>
-                ))}
+                {dailyMessingEntries.slice(0, 20).map(entry => {
+                  // Ensure membersPresent is an array
+                  const membersList = Array.isArray(entry.membersPresent) 
+                    ? entry.membersPresent 
+                    : typeof entry.membersPresent === 'string' 
+                      ? JSON.parse(entry.membersPresent)
+                      : [];
+                      
+                  const presentMemberNames = membersList.map((memberId: string) => {
+                    const member = messMembers.find(m => m.memberId === memberId);
+                    return member ? member.name : memberId;
+                  }).join(', ');
+
+                  return (
+                    <tr key={entry.id} className="border-b hover:bg-gray-50">
+                      <td className="py-2 px-3 text-sm">{entry.date}</td>
+                      <td className="py-2 px-3 text-sm">{entry.mealType}</td>
+                      <td className="py-2 px-3 text-sm">₹{entry.totalMealCost?.toFixed(2) || '0.00'}</td>
+                      <td className="py-2 px-3 text-sm">
+                        <div className="max-h-20 overflow-y-auto">
+                          {presentMemberNames}
+                          <span className="text-gray-500 text-xs ml-1">
+                            ({entry.membersPresent.length})
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

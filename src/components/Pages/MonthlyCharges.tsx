@@ -3,89 +3,159 @@
 
 import { useState, useMemo } from 'react';
 import { useMessData } from '@/hooks/useMessData';
-import { InwardLogEntry, DailyMessingEntry, BarEntry, SnackEntry, MessMember } from '@/lib/types';
 
-interface MonthlyLedgerProps {
+interface MonthlyChargesProps {
   displayModal: (text: string, type: string) => void;
 }
 
-export default function MonthlyLedger({ displayModal }: MonthlyLedgerProps) {
-  const { data: inwardLog } = useMessData('inwardLog');
-  const { data: dailyMessingEntries } = useMessData('dailyMessingEntries');
-  const { data: barEntries } = useMessData('barEntries');
-  const { data: snacksAtBarEntries } = useMessData('snacksAtBarEntries');
-  const { data: messMembers } = useMessData('messMembers');
+interface MemberCharges {
+  memberId: string;
+  name: string;
+  totalCharge: number;
+  consumedItems: {
+    itemName: string;
+    quantity: number;
+    cost: number;
+    source: 'messing' | 'bar' | 'snacks';
+  }[];
+}
+
+export default function MonthlyCharges({ displayModal }: MonthlyChargesProps) {
+  const { data: dailyMessingEntries = [] } = useMessData('dailyMessingEntries');
+  const { data: barEntries = [] } = useMessData('barEntries');
+  const { data: snacksAtBarEntries = [] } = useMessData('snacksAtBarEntries');
+  const { data: messMembers = [] } = useMessData('messMembers');
+  const { data: stockItems = [] } = useMessData('stockItems');
   
   const [selectedDate, setSelectedDate] = useState({
     month: new Date().getMonth() + 1,
     year: new Date().getFullYear(),
   });
 
+  const [searchTerm, setSearchTerm] = useState('');
+
   const handleDateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedDate(prev => ({ ...prev, [e.target.name]: parseInt(e.target.value) }));
   };
 
-  const consolidatedData = useMemo(() => {
+  // Calculate per-member charges and consumption
+  const memberCharges = useMemo(() => {
     const { month, year } = selectedDate;
     
-    const memberMap = messMembers.reduce((acc, member) => {
-      acc[member.memberId] = member.name;
-      return acc;
-    }, {} as Record<string, string>);
-
     const filterByMonth = (entry: { date: string }) => {
       const entryDate = new Date(entry.date);
       return entryDate.getFullYear() === year && entryDate.getMonth() + 1 === month;
     };
 
-    const mappedInward = inwardLog.filter(filterByMonth).map(e => ({
-      id: e.id, 
-      date: e.date, 
-      type: e.type,
-      description: `${e.quantity} units of ${e.itemName}`,
-      details: `Cost: ₹${e.unitCost}/unit`,
-      amount: e.totalCost
-    }));
+    // Initialize charges map
+    const charges: Record<string, MemberCharges> = {};
+    messMembers.forEach(member => {
+      charges[member.memberId] = {
+        memberId: member.memberId,
+        name: member.name,
+        totalCharge: 0,
+        consumedItems: []
+      };
+    });
 
-    const mappedMessing = dailyMessingEntries.filter(filterByMonth).map(e => ({
-      id: e.id, 
-      date: e.date, 
-      type: `Messing (${e.mealType})`,
-      description: `${e.consumedItems.length} items consumed`,
-      // details: `Members: ${e.membersPresent.join(', ')}`,
-      amount: e.totalMealCost
-    }));
+    // Process daily messing entries
+    dailyMessingEntries.filter(filterByMonth).forEach((entry: any) => {
+      const members = Array.isArray(entry.membersPresent) 
+        ? entry.membersPresent 
+        : JSON.parse(entry.membersPresent || '[]');
+      
+      if (members.length === 0) return;
 
-    const mappedBar = barEntries.filter(filterByMonth).map(e => ({
-      id: e.id, 
-      date: e.date, 
-      type: 'Bar Counter',
-      description: `${e.quantity} units of ${e.wineType}`,
-      details: `Members: ${e.sharingMembers.map((id : any) => memberMap[id] || id).join(', ')}`,
-      amount: e.totalCost
-    }));
+      const items = Array.isArray(entry.consumedItems)
+        ? entry.consumedItems
+        : JSON.parse(entry.consumedItems || '[]');
 
-    const mappedSnacks = snacksAtBarEntries.filter(filterByMonth).map(e => ({
-      id: e.id, 
-      date: e.date, 
-      type: 'Snacks at Bar',
-      description: `${e.quantity} units of ${e.itemName}`,
-      details: `Members: ${e.sharingMembers.map((id: number) => memberMap[id] || id).join(', ')}`,
-      amount: e.totalItemCost
-    }));
+      items.forEach((item: any) => {
+        const stockItem = stockItems.find(s => 
+          s.id === item.itemId || s.itemName === item.itemName
+        );
+        if (!stockItem) return;
 
-    const allEntries = [...mappedInward, ...mappedMessing, ...mappedBar, ...mappedSnacks];
-    allEntries.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        const quantityPerMember = Number(item.quantity) / members.length;
+        const costPerMember = (Number(item.quantity) * Number(stockItem.lastUnitCost)) / members.length;
 
-    // Group by day
-    return allEntries.reduce((acc, entry) => {
-      const day = entry.date;
-      if (!acc[day]) acc[day] = [];
-      acc[day].push(entry);
-      return acc;
-    }, {} as Record<string, typeof allEntries>);
+        members.forEach((memberId: string) => {
+          if (charges[memberId]) {
+            charges[memberId].consumedItems.push({
+              itemName: stockItem.itemName,
+              quantity: quantityPerMember,
+              cost: costPerMember,
+              source: 'messing'
+            });
+            charges[memberId].totalCharge += costPerMember;
+          }
+        });
+      });
+    });
 
-  }, [selectedDate, inwardLog, dailyMessingEntries, barEntries, snacksAtBarEntries, messMembers]);
+    // Process bar entries
+    barEntries.filter(filterByMonth).forEach((entry: any) => {
+      const members = Array.isArray(entry.sharingMembers)
+        ? entry.sharingMembers
+        : JSON.parse(entry.sharingMembers || '[]');
+      
+      if (members.length === 0) return;
+
+      const costPerMember = Number(entry.totalCost || 0) / members.length;
+      const quantityPerMember = Number(entry.quantity || 0) / members.length;
+
+      members.forEach((memberId: string) => {
+        if (charges[memberId]) {
+          charges[memberId].consumedItems.push({
+            itemName: entry.wineType,
+            quantity: quantityPerMember,
+            cost: costPerMember,
+            source: 'bar'
+          });
+          charges[memberId].totalCharge += costPerMember;
+        }
+      });
+    });
+
+    // Process snacks entries
+    snacksAtBarEntries.filter(filterByMonth).forEach((entry: any) => {
+      const members = Array.isArray(entry.sharingMembers)
+        ? entry.sharingMembers
+        : JSON.parse(entry.sharingMembers || '[]');
+      
+      if (members.length === 0) return;
+
+      const costPerMember = Number(entry.totalItemCost || 0) / members.length;
+      const quantityPerMember = Number(entry.quantity || 0) / members.length;
+
+      members.forEach((memberId: string) => {
+        if (charges[memberId]) {
+          charges[memberId].consumedItems.push({
+            itemName: entry.itemName,
+            quantity: quantityPerMember,
+            cost: costPerMember,
+            source: 'snacks'
+          });
+          charges[memberId].totalCharge += costPerMember;
+        }
+      });
+    });
+
+    // Convert to array and sort by total charge
+    return Object.values(charges)
+      .filter(member => member.totalCharge > 0)
+      .sort((a, b) => b.totalCharge - a.totalCharge);
+  }, [selectedDate, dailyMessingEntries, barEntries, snacksAtBarEntries, messMembers, stockItems]);
+
+  const filteredMembers = useMemo(() => {
+    return memberCharges.filter(member => 
+      member.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [memberCharges, searchTerm]);
+
+  const grandTotal = useMemo(() => {
+    return memberCharges.reduce((sum, member) => sum + member.totalCharge, 0);
+  }, [memberCharges]);
 
   const years = Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i);
   const months = Array.from({ length: 12 }, (_, i) => ({ 
@@ -97,63 +167,98 @@ export default function MonthlyLedger({ displayModal }: MonthlyLedgerProps) {
     <div className="p-6 sm:p-8 rounded-xl w-full bg-white shadow-lg">
       <h1 className="text-2xl sm:text-3xl font-bold text-center text-gray-800 mb-6">Monthly Ledger</h1>
       
-      <div className="flex justify-center items-center gap-4 mb-8 p-4 bg-gray-100 rounded-lg">
-        <select 
-          name="month" 
-          value={selectedDate.month} 
-          onChange={handleDateChange} 
-          className="p-2 border rounded-lg"
-        >
-          {months.map(m => <option key={m.value} value={m.value}>{m.name}</option>)}
-        </select>
-        <select 
-          name="year" 
-          value={selectedDate.year} 
-          onChange={handleDateChange} 
-          className="p-2 border rounded-lg"
-        >
-          {years.map(y => <option key={y} value={y}>{y}</option>)}
-        </select>
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-8 p-4 bg-gray-100 rounded-lg">
+        <div className="flex items-center gap-4">
+          <select 
+            name="month" 
+            value={selectedDate.month} 
+            onChange={handleDateChange} 
+            className="p-2 border rounded-lg"
+          >
+            {months.map(m => (
+              <option key={m.value} value={m.value}>{m.name}</option>
+            ))}
+          </select>
+          <select 
+            name="year" 
+            value={selectedDate.year} 
+            onChange={handleDateChange} 
+            className="p-2 border rounded-lg"
+          >
+            {years.map(y => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
+        </div>
+        <input
+          type="text"
+          placeholder="Search members..."
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
+          className="p-2 border rounded-lg w-full sm:w-64"
+        />
       </div>
 
+      {/* Members List */}
       <div className="space-y-6">
-        {Object.keys(consolidatedData).length === 0 ? (
-          <p className="text-center text-gray-500 mt-8">No entries found for the selected month.</p>
+        {filteredMembers.length === 0 ? (
+          <p className="text-center text-gray-500 mt-8">
+            No charges found for the selected month.
+          </p>
         ) : (
-          Object.entries(consolidatedData).map(([day, entries]) => (
-            <div key={day} className="bg-gray-50 p-4 rounded-lg shadow-sm">
-              <h2 className="text-lg font-semibold text-blue-700 border-b pb-2 mb-3">
-                {new Date(day + 'T00:00:00').toLocaleDateString('en-GB', { 
-                  weekday: 'long', 
-                  year: 'numeric', 
-                  month: 'long', 
-                  day: 'numeric' 
-                })}
-              </h2>
-              <div className="overflow-x-auto">
-                <table className="min-w-full bg-white">
-                  <thead className="bg-gray-200">
-                    <tr>
-                      <th className="py-2 px-3 text-left text-xs font-semibold">Type</th>
-                      <th className="py-2 px-3 text-left text-xs font-semibold">Description</th>
-                      <th className="py-2 px-3 text-left text-xs font-semibold">Details</th>
-                      <th className="py-2 px-3 text-right text-xs font-semibold">Amount (₹)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {entries.map(entry => (
-                      <tr key={entry.id} className="border-b">
-                        <td className="py-2 px-3 text-sm font-medium">{entry.type}</td>
-                        <td className="py-2 px-3 text-sm">{entry.description}</td>
-                        {/* <td className="py-2 px-3 text-sm">{entry.details}</td> */}
-                        <td className="py-2 px-3 text-sm text-right font-mono">{entry.amount}</td>
+          <>
+            {filteredMembers.map(member => (
+              <div key={member.memberId} className="bg-gray-50 p-4 rounded-lg shadow-sm">
+                <div className="flex justify-between items-center border-b pb-2 mb-3">
+                  <h2 className="text-lg font-semibold text-blue-700">
+                    {member.name}
+                  </h2>
+                  <span className="text-lg font-semibold text-green-700">
+                    ₹{member.totalCharge.toFixed(2)}
+                  </span>
+                </div>
+
+                {/* Itemized List */}
+                <div className="overflow-x-auto">
+                  <table className="min-w-full bg-white">
+                    <thead className="bg-gray-100">
+                      <tr>
+                        <th className="py-2 px-3 text-left text-xs font-semibold">Item</th>
+                        <th className="py-2 px-3 text-left text-xs font-semibold">Source</th>
+                        <th className="py-2 px-3 text-right text-xs font-semibold">Quantity</th>
+                        <th className="py-2 px-3 text-right text-xs font-semibold">Cost (₹)</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {member.consumedItems.map((item, idx) => (
+                        <tr key={idx} className="border-b">
+                          <td className="py-2 px-3 text-sm">{item.itemName}</td>
+                          <td className="py-2 px-3 text-sm capitalize">{item.source}</td>
+                          <td className="py-2 px-3 text-sm text-right">
+                            {item.quantity.toFixed(2)}
+                          </td>
+                          <td className="py-2 px-3 text-sm text-right">
+                            ₹{item.cost.toFixed(2)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ))}
+
+            {/* Grand Total */}
+            <div className="mt-6 p-4 bg-blue-50 rounded-lg shadow-sm">
+              <div className="flex justify-between items-center">
+                <h2 className="text-lg font-bold text-blue-800">Grand Total</h2>
+                <span className="text-lg font-bold text-blue-800">
+                  ₹{grandTotal.toFixed(2)}
+                </span>
               </div>
             </div>
-          ))
+          </>
         )}
       </div>
     </div>

@@ -104,7 +104,12 @@ export default function LiquorInward({ displayModal }: LiquorInwardProps) {
             type="text"
             id="liquorName"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => {
+              const formattedValue =
+                e.target.value.charAt(0).toUpperCase() +
+                e.target.value.slice(1).toLowerCase();
+              setName(formattedValue);
+            }}
             className="p-2 border rounded-lg"
             required
           />

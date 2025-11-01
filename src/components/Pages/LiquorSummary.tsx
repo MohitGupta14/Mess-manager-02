@@ -14,7 +14,7 @@ export default function LiquorSummary({ displayModal }: LiquorSummaryProps) {
   const { data: minStockLevels } = useMessData('minStockLevels');
   const [editingItem, setEditingItem] = useState<StockItem | null>(null);
 
-  const liquorItems = stockItems.filter(item => item.type === 'Liquor');
+  const liquorItems = stockItems.filter(item => item.type === 'Liquor Inward');
   const sortedItems = [...liquorItems].sort((a, b) => a.itemName.localeCompare(b.itemName));
 
   const getMinStock = (itemName: string) => {

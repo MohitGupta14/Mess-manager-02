@@ -69,7 +69,7 @@ export default function BarCounter({ displayModal }: BarCounterProps) {
     }
   };
 
-  const liquorItems = stockItems.filter(i => i.type === 'Liquor');
+  const liquorItems = stockItems.filter(i => i.type === 'Liquor Inward');
 
   return (
     <div className="p-6 sm:p-8 rounded-xl w-full bg-white shadow-lg">

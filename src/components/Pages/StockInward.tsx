@@ -27,7 +27,7 @@ export default function StockInward({ displayModal }: StockInwardProps) {
   const [type, setType] = useState("");
 
   useEffect(() => {
-    if (itemType === "Non Issue") {
+    if (itemType === "Issue") {
       setUnitCost("0");
     } else {
       setUnitCost("");
@@ -191,12 +191,12 @@ export default function StockInward({ displayModal }: StockInwardProps) {
             value={unitCost}
             onChange={(e) => setUnitCost(e.target.value)}
             className={`p-2 border rounded-lg ${
-              itemType === "Non Issue" ? "bg-gray-200" : ""
+              itemType === "Issue" ? "bg-gray-200" : ""
             }`}
             step="0.01"
             min="0"
             required
-            disabled={itemType === "Non Issue"}
+            disabled={itemType === "Issue"}
           />
         </div>
         <div className="flex flex-col">

@@ -8,11 +8,6 @@ interface LiquorInwardProps {
 }
 
 export default function LiquorInward({ displayModal }: LiquorInwardProps) {
-  const {
-    data: stockItems,
-    addData: addStock,
-    updateData: updateStock,
-  } = useMessData("stockItems");
   const { addData: addLog } = useMessData("inwardLog");
 
   const [name, setName] = useState("");
@@ -32,53 +27,22 @@ export default function LiquorInward({ displayModal }: LiquorInwardProps) {
     const qty = parseFloat(quantity);
     const cost = parseFloat(unitPrice);
 
-    const existingItem = stockItems.find((item) => item.itemName === name);
-
-    if (existingItem) {
-      const newQuantity = existingItem.currentQuantity + qty;
-      const newTotalCost = existingItem.totalCost + qty * cost;
-      const newAvgCost = newQuantity > 0 ? newTotalCost / newQuantity : 0;
-
-      const result = await updateStock(existingItem.id, {
-        currentQuantity: newQuantity,
-        totalCost: newTotalCost,
-        lastUnitCost: newAvgCost,
-        lastReceivedDate: date,
-        unitOfMeasurement: unit,
-        itemType,
-        type: "Liquor",
-      });
-
-      if (!result.success) {
-        displayModal(result.error || "Failed to update liquor stock", "error");
-        return;
-      }
-    } else {
-      const result = await addStock({
-        itemName: name,
-        currentQuantity: qty,
-        unitOfMeasurement: unit,
-        lastUnitCost: cost,
-        lastReceivedDate: date,
-        totalCost: qty * cost,
-        itemType,
-        type: "Liquor",
-      });
-
-      if (!result.success) {
-        displayModal(result.error || "Failed to add liquor stock", "error");
-        return;
-      }
-    }
-
-    await addLog({
+    // Server will handle updating/adding stock when an `inwardLog` record is created.
+    const result = await addLog({
       date,
       itemName: name,
       quantity: qty,
       unitCost: cost,
       totalCost: qty * cost,
-      type: "Liquor Inward",
+      unitOfMeasurement: unit,
+      itemType,
+      type: "alcohol",
     });
+
+    if (!result.success) {
+      displayModal(result.error || "Failed to add liquor inward log", "error");
+      return;
+    }
 
     displayModal(`Successfully updated ${name}`, "success");
     setName("");

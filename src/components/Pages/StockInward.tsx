@@ -100,7 +100,7 @@ export default function StockInward({ displayModal }: StockInwardProps) {
               const formattedValue =
                 e.target.value.charAt(0).toUpperCase() +
                 e.target.value.slice(1).toLowerCase();
-              setItemName(formattedValue);
+              setItemName(formattedValue.trim());
             }}
             className="p-2 border rounded-lg"
             required

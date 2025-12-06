@@ -4,6 +4,9 @@
 import { useState } from 'react';
 import { useMessData } from '@/hooks/useMessData';
 import { MessMember } from '@/lib/types';
+import 'react-phone-number-input/style.css'
+import PhoneInput from 'react-phone-number-input'
+
 
 interface MessMembersProps {
   displayModal: (text: string, type: string) => void;
@@ -77,7 +80,7 @@ export default function MessMembers({ displayModal }: MessMembersProps) {
       <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
         <input 
           name="name" 
-          value={form.name} 
+          value={form.name.charAt(0).toUpperCase() + form.name.slice(1)} 
           onChange={handleChange} 
           placeholder="Name *" 
           className="p-2 border rounded" 
@@ -92,12 +95,12 @@ export default function MessMembers({ displayModal }: MessMembersProps) {
           required 
           disabled={!!editing} 
         />
-        <input 
-          name="contactInfo" 
-          value={form.contactInfo} 
-          onChange={handleChange} 
-          placeholder="Contact Info" 
-          className="p-2 border rounded" 
+        <PhoneInput
+          placeholder="Enter phone number"
+          value={form.contactInfo}
+          onChange={(value) => setForm({ ...form, contactInfo: value || '' })}
+          className="p-2 border rounded w-full"
+          defaultCountry='IN'
         />
         <input 
           name="joinDate" 

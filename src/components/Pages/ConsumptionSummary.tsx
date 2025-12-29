@@ -3,7 +3,8 @@
 
 import { useMemo, useState } from 'react';
 import { useMessData } from '@/hooks/useMessData';
-import { MessMember } from '@/lib/types'; 
+import { MessMember } from '@/lib/types';
+import PrintExportButtons from '@/components/PrintExportButtons'; 
 
 // Type definition for aggregated item display
 interface AggregatedItem {
@@ -214,15 +215,15 @@ export default function ConsumptionSummary({ displayModal }: ConsumptionSummaryP
         </div>
         <div className="text-center">
           <p className="text-gray-600 text-sm">Total Liquor Cost</p>
-          <p className="text-2xl font-bold text-red-700/80">₹{totals.liquor.toFixed(2)}</p> 
+          <p className="text-2xl font-bold text-orange-500/80">₹{totals.liquor.toFixed(2)}</p> 
         </div>
         <div className="text-center">
           <p className="text-gray-600 text-sm">Total Snacks Cost</p>
-          <p className="text-2xl font-bold text-yellow-700/90">₹{totals.snacks.toFixed(2)}</p>
+          <p className="text-2xl font-bold text-yellow-600/90">₹{totals.snacks.toFixed(2)}</p>
         </div>
         <div className="text-center">
           <p className="text-gray-600 text-sm">Overall Total</p>
-          <p className="text-2xl font-bold text-green-700/90">₹{totals.grand.toFixed(2)}</p>
+          <p className="text-2xl font-bold text-green-600/90">₹{totals.grand.toFixed(2)}</p>
         </div>
       </div>
       
@@ -304,8 +305,14 @@ export default function ConsumptionSummary({ displayModal }: ConsumptionSummaryP
       )}
 
       {/* --- Main Summary Table & Search --- */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
       <h2 className="text-xl font-semibold mb-3">Member Details</h2>
-      
+        <PrintExportButtons
+          tableId="consumptionSummaryTable"
+          filename="consumption-summary"
+          title={`Consumption Summary (${startDate} to ${endDate})`}
+        />
+      </div>
       <input
         type="text"
         placeholder="Search member by Name or Service ID..."
@@ -317,71 +324,71 @@ export default function ConsumptionSummary({ displayModal }: ConsumptionSummaryP
         className="mb-4 p-2 border rounded-lg w-full max-w-sm shadow-sm"
       />
 
-      <div className="overflow-x-auto border rounded-lg shadow-md">
-        <div className="max-h-[30rem] overflow-y-auto"> {/* Scrollable container for the main table */}
-          <table className="min-w-full bg-white">
-            <thead className="bg-gray-200 sticky top-0 shadow-sm z-10">
-              <tr>
-                <th className="p-3 text-left text-sm font-semibold text-gray-700">Member Name / ID</th>
-                <th className="p-3 text-center text-sm font-semibold text-gray-700">Total Entries</th>
-                <th className="p-3 text-left text-sm font-semibold text-gray-700">Liquor Cost (₹)</th>
-                <th className="p-3 text-left text-sm font-semibold text-gray-700">Snacks Cost (₹)</th>
-                <th className="p-3 text-left text-sm font-semibold text-gray-700">Total Cost (₹)</th>
-                <th className="p-3 text-left text-sm font-semibold text-gray-700">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredConsumptionData.map((member) => (
-                <tr 
-                  key={member.id} 
-                  className={`border-b hover:bg-gray-50 cursor-pointer ${drillDownMemberId === member.memberId ? 'bg-blue-50' : ''}`}
-                >
-                  <td 
-                    className="p-3 font-medium text-blue-600 underline"
-                    onClick={() => setDrillDownMemberId(member.memberId)}
-                    title="Click to view itemized consumption"
-                  >
-                    <div className="flex flex-col text-sm leading-tight">
-                        <span>{member.name}</span>
-                        <span className="text-xs text-gray-500">{member.memberId}</span>
-                    </div>
-                  </td>
-                  <td className="p-3 text-center text-sm font-medium text-gray-700">
-                    {member.liquorEntries + member.snackEntries}
-                  </td>
-                  <td className="p-3 font-mono text-sm text-red-700/80">₹{member.totalLiquorCost.toFixed(2)}</td>
-                  <td className="p-3 font-mono text-sm text-yellow-700/90">₹{member.totalSnacksCost.toFixed(2)}</td>
-                  <td className="p-3 font-mono text-sm font-bold text-green-700/90">₹{member.grandTotal.toFixed(2)}</td>
-                  <td className="p-3">
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                        member.grandTotal > 0 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
-                    }`}>
-                        {member.grandTotal > 0 ? 'Active' : 'No Spend'}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-              {filteredConsumptionData.length === 0 && (
+      <div id="consumptionSummaryTable" className="overflow-x-auto border rounded-lg shadow-md">
+          <div className="max-h-[40rem] overflow-y-auto">
+            <table className="min-w-full bg-white">
+              <thead className="bg-gray-200 sticky top-0 shadow-sm z-10">
                 <tr>
-                    <td colSpan={6} className="p-4 text-center text-gray-500">
-                        No members found matching your filters/search.
-                    </td>
+                  <th className="p-3 text-left text-sm font-semibold text-gray-700">Member Name / ID</th>
+                  <th className="p-3 text-center text-sm font-semibold text-gray-700">Total Entries</th>
+                  <th className="p-3 text-left text-sm font-semibold text-gray-700">Liquor Cost (₹)</th>
+                  <th className="p-3 text-left text-sm font-semibold text-gray-700">Snacks Cost (₹)</th>
+                  <th className="p-3 text-left text-sm font-semibold text-gray-700">Total Cost (₹)</th>
+                  <th className="p-3 text-left text-sm font-semibold text-gray-700">Status</th>
                 </tr>
-              )}
-            </tbody>
-            <tfoot className="bg-gray-200 font-bold sticky bottom-0">
-              <tr>
-                 <td className="p-3 text-gray-800">OVERALL TOTAL</td>
-                 <td className="p-3 text-center text-gray-700">{barEntries.length + snacksAtBarEntries.length}</td>
-                 <td className="p-3 font-mono text-red-700">₹{totals.liquor.toFixed(2)}</td>
-                 <td className="p-3 font-mono text-yellow-700">₹{totals.snacks.toFixed(2)}</td>
-                 <td className="p-3 font-mono text-green-700">₹{totals.grand.toFixed(2)}</td>
-                 <td className="p-3"></td>
-              </tr>
-            </tfoot>
-          </table>
+              </thead>
+              <tbody>
+                {filteredConsumptionData.map((member) => (
+                  <tr 
+                    key={member.id} 
+                    className={`border-b hover:bg-gray-50 cursor-pointer ${drillDownMemberId === member.memberId ? 'bg-blue-50' : ''}`}
+                  >
+                    <td 
+                      className="p-3 font-medium text-blue-600 underline"
+                      onClick={() => setDrillDownMemberId(member.memberId)}
+                      title="Click to view itemized consumption"
+                    >
+                      <div className="flex flex-col text-sm leading-tight">
+                          <span>{member.name}</span>
+                          <span className="text-xs text-gray-500">{member.memberId}</span>
+                      </div>
+                    </td>
+                    <td className="p-3 text-center text-sm font-medium text-gray-700">
+                      {member.liquorEntries + member.snackEntries}
+                    </td>
+                    <td className="p-3 font-mono text-sm text-orange-600/80">₹{member.totalLiquorCost.toFixed(2)}</td>
+                    <td className="p-3 font-mono text-sm text-yellow-600/90">₹{member.totalSnacksCost.toFixed(2)}</td>
+                    <td className="p-3 font-mono text-sm font-bold text-green-600/90">₹{member.grandTotal.toFixed(2)}</td>
+                    <td className="p-3">
+                      <span className={`text-xs px-2 py-1 rounded-full ${
+                          member.grandTotal > 0 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+                      }`}>
+                          {member.grandTotal > 0 ? 'Active' : 'No Spend'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+                {filteredConsumptionData.length === 0 && (
+                  <tr>
+                      <td colSpan={6} className="p-4 text-center text-gray-500">
+                          No members found matching your filters/search.
+                      </td>
+                  </tr>
+                )}
+              </tbody>
+              <tfoot className="bg-gray-200 font-bold sticky bottom-0">
+                <tr>
+                  <td className="p-3 text-gray-800">OVERALL TOTAL</td>
+                  <td className="p-3 text-center text-gray-700">{barEntries.length + snacksAtBarEntries.length}</td>
+                  <td className="p-3 font-mono text-red-700">₹{totals.liquor.toFixed(2)}</td>
+                  <td className="p-3 font-mono text-yellow-700">₹{totals.snacks.toFixed(2)}</td>
+                  <td className="p-3 font-mono text-green-700">₹{totals.grand.toFixed(2)}</td>
+                  <td className="p-3"></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
         </div>
-      </div>
     </div>
   );
 }

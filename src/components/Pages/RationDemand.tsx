@@ -3,6 +3,7 @@
 
 import { useState, useMemo } from 'react';
 import { useMessData } from '@/hooks/useMessData';
+import PrintExportButtons from '@/components/PrintExportButtons';
 import { StockItem, RationDemand } from '@/lib/types';
 
 interface RationDemandProps {
@@ -143,7 +144,14 @@ export default function RationDemandPage({ displayModal }: RationDemandProps) {
 
       {/* View Filters & Aggregated Summary */}
       <div className="mb-6 p-4 bg-white rounded-lg shadow-sm border">
-        <h2 className="text-lg font-semibold mb-3">View Ration Demands</h2>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+          <h2 className="text-lg font-semibold">View Ration Demands</h2>
+          <PrintExportButtons
+            tableId="rationDemandTable"
+            filename="ration-demands"
+            title={`Ration Demands (${viewStartDate} to ${viewEndDate})`}
+          />
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
           <div className="flex flex-col">
             <label className="text-sm font-medium mb-1">Start Date</label>
@@ -169,7 +177,7 @@ export default function RationDemandPage({ displayModal }: RationDemandProps) {
         </div>
 
         {/* Aggregated per-item table */}
-        <div className="mt-4">
+        <div id="rationDemandTable" className="mt-4">
           <h3 className="text-sm font-medium mb-2">Aggregated by Item</h3>
           <div className="overflow-x-auto">
             <table className="min-w-full bg-white border">

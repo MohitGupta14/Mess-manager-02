@@ -6,7 +6,7 @@ import { useMessData } from "@/hooks/useMessData";
 import { MessMember } from "@/lib/types";
 import "react-phone-number-input/style.css";
 import PhoneInput from "react-phone-number-input";
-
+import PrintExportButtons from "@/components/PrintExportButtons";
 // --- Constants for Pagination ---
 const MEMBERS_PER_PAGE = 10;
 
@@ -250,8 +250,14 @@ export default function MessMembers({ displayModal }: MessMembersProps) {
 
       {/* --- Search and Table Section --- */}
       <div className="mt-8">
-        <h2 className="text-xl font-semibold mb-4">Current Members ({filteredMembers.length})</h2>
-        
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+          <h2 className="text-xl font-semibold mb-4">Current Members ({filteredMembers.length})</h2>
+          <PrintExportButtons 
+            tableId="memberTable"
+            filename="current-member-summary"
+            title="Member Summary"
+          />
+        </div>
         {/* Search and Date Filter Container */}
         <div className="flex flex-col sm:flex-row sm:space-x-4 mb-4">
             {/* Search Bar */}
@@ -287,50 +293,52 @@ export default function MessMembers({ displayModal }: MessMembersProps) {
         </div>
         
         {/* Table Container with Scrollability */}
-        <div className="overflow-x-auto">
-          <div className="max-h-[30rem] overflow-y-auto border rounded"> {/* Max height for 10 rows + padding to enable scrollability */}
-            <table className="min-w-full bg-white">
-              <thead className="bg-blue-50 sticky top-0 shadow-sm z-10">
-                <tr>
-                  <th className="p-3 text-left text-sm">Name</th>
-                  <th className="p-3 text-left text-sm">Service No.</th>
-                  <th className="p-3 text-left text-sm">Contact</th>
-                  <th className="p-3 text-left text-sm">Join Date</th>
-                  <th className="p-3 text-left text-sm">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedMembers.map((member) => (
-                  <tr key={member.id} className="border-b">
-                    <td className="p-3">{member.name}</td>
-                    <td className="p-3">{member.memberId}</td>
-                    <td className="p-3">{member.contactInfo || "-"}</td>
-                    <td className="p-3">{member.joinDate}</td>
-                    <td className="p-3 space-x-2">
-                      <button
-                        onClick={() => handleEdit(member)}
-                        className="text-blue-500 hover:underline"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(member.id)}
-                        className="text-red-500 hover:underline"
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                {paginatedMembers.length === 0 && (
+        <div id="memberTable" className="min-w-full inline-block align-middle">
+          <div className="overflow-x-auto">
+            <div className="max-h-[30rem] overflow-y-auto border rounded"> {/* Max height for 10 rows + padding to enable scrollability */}
+              <table className="min-w-full bg-white">
+                <thead className="bg-blue-50 sticky top-0 shadow-sm z-10">
                   <tr>
-                    <td colSpan={5} className="p-3 text-center text-gray-500">
-                      No members found matching the criteria.
-                    </td>
+                    <th className="p-3 text-left text-sm">Name</th>
+                    <th className="p-3 text-left text-sm">Service No.</th>
+                    <th className="p-3 text-left text-sm">Contact</th>
+                    <th className="p-3 text-left text-sm">Join Date</th>
+                    <th className="p-3 text-left text-sm">Actions</th>
                   </tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {paginatedMembers.map((member) => (
+                    <tr key={member.id} className="border-b">
+                      <td className="p-3">{member.name}</td>
+                      <td className="p-3">{member.memberId}</td>
+                      <td className="p-3">{member.contactInfo || "-"}</td>
+                      <td className="p-3">{member.joinDate}</td>
+                      <td className="p-3 space-x-2">
+                        <button
+                          onClick={() => handleEdit(member)}
+                          className="text-blue-500 hover:underline"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(member.id)}
+                          className="text-red-500 hover:underline"
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                  {paginatedMembers.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="p-3 text-center text-gray-500">
+                        No members found matching the criteria.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 

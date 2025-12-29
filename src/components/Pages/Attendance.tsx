@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { useMessData } from "@/hooks/useMessData";
-import { Search, Users, Calendar, Save } from "lucide-react";
+import { useState, useEffect, useMemo } from 'react';
+import { useMessData } from '@/hooks/useMessData';
+import { Search, Users, Calendar, Save } from 'lucide-react';
+import PrintExportButtons from '@/components/PrintExportButtons';
 
 type AttendanceStatus = "None" | "Veg" | "Non-Veg" | "Egg-Veg" | "OUT";
 
@@ -307,11 +308,9 @@ export default function Attendance({ displayModal }: AttendanceProps) {
     const base =
       "flex items-center justify-between p-2 rounded-lg font-medium transition-all duration-150 border cursor-pointer";
 
-    // None (Default) is now Neutral/Grey
     if (status === "None")
       return `${base} bg-gray-50 text-gray-400 border-gray-200 hover:bg-gray-100 hover:border-gray-300`;
 
-    // Active states
     if (status === "Veg")
       return `${base} bg-green-100 text-green-800 border-green-300 shadow-sm`;
     if (status === "OUT")
@@ -355,6 +354,7 @@ export default function Attendance({ displayModal }: AttendanceProps) {
 
       {/* Container for Layout with Fixed Height */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-[80vh] min-h-[600px]">
+        
         {/* === LEFT COLUMN: Daily Attendance Form === */}
         <div className="bg-gray-50 p-6 rounded-lg shadow-md flex flex-col h-full border border-gray-100 overflow-hidden">
           <div className="space-y-4 flex flex-col h-full overflow-hidden">
@@ -490,33 +490,38 @@ export default function Attendance({ displayModal }: AttendanceProps) {
         <div className="bg-gray-50 p-6 rounded-lg shadow-md flex flex-col h-full border border-gray-100 overflow-hidden">
           <div className="flex flex-col h-full overflow-hidden">
             {/* Header Controls */}
-            <div className="flex flex-col gap-3 mb-4 flex-shrink-0">
-              <div className="flex items-center justify-between">
-                <div className="flex bg-white p-1 rounded-lg border shadow-sm">
-                  <button
-                    onClick={() => setViewMode("summary")}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
-                      viewMode === "summary"
-                        ? "bg-blue-100 text-blue-700 shadow-sm"
-                        : "text-gray-600 hover:bg-gray-50"
-                    }`}
-                  >
-                    Summary
-                  </button>
-                  <button
-                    onClick={() => setViewMode("member")}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
-                      viewMode === "member"
-                        ? "bg-blue-100 text-blue-700 shadow-sm"
-                        : "text-gray-600 hover:bg-gray-50"
-                    }`}
-                  >
-                    Details
-                  </button>
-                </div>
-
-                {/* Search Small */}
-                <div className="relative w-40">
+            <div className="flex flex-col gap-2 mb-4 flex-shrink-0">
+              
+              {/* TOP ROW: Buttons Left, Search Right */}
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                
+                {/* LEFT: View Toggles & Export Buttons (Adjacent) */}
+                <div className="flex items-center gap-2">
+                  {/* Toggle Buttons */}
+                  <div className="flex bg-white p-1 rounded-lg border shadow-sm">
+                    <button
+                      onClick={() => setViewMode("summary")}
+                      className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                        viewMode === "summary"
+                          ? "bg-blue-100 text-blue-700 shadow-sm"
+                          : "text-gray-600 hover:bg-gray-50"
+                      }`}
+                    >
+                      Summary
+                    </button>
+                    <button
+                      onClick={() => setViewMode("member")}
+                      className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                        viewMode === "member"
+                          ? "bg-blue-100 text-blue-700 shadow-sm"
+                          : "text-gray-600 hover:bg-gray-50"
+                      }`}
+                    >
+                      Details
+                    </button>
+                  </div>
+                    {/* RIGHT: Search Input */}
+                <div className="relative w-30">
                   <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-3 h-3 text-gray-400" />
                   <input
                     placeholder="Search..."
@@ -524,6 +529,18 @@ export default function Attendance({ displayModal }: AttendanceProps) {
                     onChange={(e) => setMemberSearch(e.target.value)}
                     className="w-full pl-7 pr-2 py-1.5 border rounded-md text-xs focus:ring-1 focus:ring-blue-500"
                   />
+                </div>
+
+                  {/* Export Buttons (Print, PDF, CSV) */}
+                  {viewMode === "summary" && (
+                    <div className="flex items-right">
+                       <PrintExportButtons
+                        tableId="attendanceSummaryTable"
+                        filename="attendance-summary"
+                        title={`Attendance Summary (${rangeStart} to ${rangeEnd})`}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -550,10 +567,10 @@ export default function Attendance({ displayModal }: AttendanceProps) {
 
             {/* SCROLLABLE CONTENT AREA (Right Side) */}
             <div className="flex-1 overflow-y-auto min-h-0 border rounded-lg bg-white shadow-inner">
-              {viewMode === "summary" ? (
-                <div className="min-w-full inline-block align-middle">
+              {viewMode === 'summary' ? (
+                <div id="attendanceSummaryTable" className="min-w-full inline-block align-middle">
                   <div className="overflow-x-auto">
-                    <table className="min-w-max w-full divide-y divide-gray-200">
+                    <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50 sticky top-0 z-10">
                         <tr>
                           <th

@@ -4,7 +4,7 @@
 import { useState, useMemo } from "react";
 import { useMessData } from "@/hooks/useMessData";
 import { StockItem, MessMember, BarEntry } from "@/lib/types";
-
+import PrintExportButtons from "@/components/PrintExportButtons";
 interface BarCounterProps {
   displayModal: (text: string, type: string) => void;
 }
@@ -193,6 +193,9 @@ export default function BarCounter({ displayModal }: BarCounterProps) {
                 Available:{" "}
                 {liquorItems.find((i) => i.itemName === wineType)
                   ?.currentQuantity || 0}
+                  {" "}
+                {liquorItems.find((i) => i.itemName === wineType)
+                  ?.unitOfMeasurement || ""}
               </span>
             </div>
           </div>
@@ -281,10 +284,20 @@ export default function BarCounter({ displayModal }: BarCounterProps) {
         </form>
 
         {/* === RIGHT COLUMN: Recent Entries === */}
-        <div className="bg-gray-50 p-6 rounded-lg shadow-md">
+        <div
+          id="barEntriesTable"
+          className="bg-gray-50 p-6 rounded-lg shadow-md"
+        >
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
           <h2 className="text-xl font-semibold text-gray-800 mb-4 text-center">
             Recent Entries
           </h2>
+          <PrintExportButtons
+            tableId="barEntriesTable"
+            filename="bar-entries-history"
+            title="Bar Entries History"
+          />
+          </div>
           <div className="overflow-y-auto max-h-[70vh] border rounded-lg bg-white shadow-sm">
             <table className="min-w-full">
               <thead className="bg-blue-50 sticky top-0 z-10">

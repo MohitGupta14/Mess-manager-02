@@ -3,6 +3,7 @@
 
 import { useState, useMemo } from 'react';
 import { useMessData } from '@/hooks/useMessData';
+import PrintExportButtons from '@/components/PrintExportButtons';
 
 interface MonthlyChargesProps {
   displayModal: (text: string, type: string) => void;
@@ -165,7 +166,14 @@ export default function MonthlyCharges({ displayModal }: MonthlyChargesProps) {
 
   return (
     <div className="p-6 sm:p-8 rounded-xl w-full bg-white shadow-lg">
-      <h1 className="text-2xl sm:text-3xl font-bold text-center text-gray-800 mb-6">Monthly Ledger</h1>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Monthly Ledger</h1>
+        <PrintExportButtons
+          tableId="monthlyChargesTable"
+          filename="monthly-charges"
+          title={`Monthly Charges - ${months.find(m => m.value === selectedDate.month)?.name} ${selectedDate.year}`}
+        />
+      </div>
       
       {/* Filters */}
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-8 p-4 bg-gray-100 rounded-lg">
@@ -201,7 +209,7 @@ export default function MonthlyCharges({ displayModal }: MonthlyChargesProps) {
       </div>
 
       {/* Members List */}
-      <div className="space-y-6">
+      <div id="monthlyChargesTable" className="space-y-6">
         {filteredMembers.length === 0 ? (
           <p className="text-center text-gray-500 mt-8">
             No charges found for the selected month.

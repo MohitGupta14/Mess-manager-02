@@ -3,6 +3,7 @@
 
 import { useState, useMemo } from 'react';
 import { useMessData } from '@/hooks/useMessData';
+import PrintExportButtons from '@/components/PrintExportButtons';
 import { StockItem, MinStockLevel } from '@/lib/types';
 import EditStockItemModal from '@/components/Modals/EditStockItemModal';
 
@@ -53,7 +54,14 @@ export default function LiquorSummary({ displayModal }: LiquorSummaryProps) {
 
   return (
     <div className="p-6 sm:p-8 rounded-xl w-full bg-white shadow-lg">
-      <h1 className="text-2xl sm:text-3xl font-bold text-center text-gray-800 mb-6">Liquor Stock Summary</h1>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Liquor Stock Summary</h1>
+        <PrintExportButtons
+          tableId="liquorSummaryTable"
+          filename="liquor-summary"
+          title="Liquor Stock Summary"
+        />
+      </div>
 
       {/* NEW: Search Bar */}
       <input
@@ -64,10 +72,9 @@ export default function LiquorSummary({ displayModal }: LiquorSummaryProps) {
         className="mb-4 p-2 border rounded w-full max-w-md"
       />
       
-      <div className="overflow-x-auto">
         {/* NEW: Wrapper for scrollable table body with fixed header */}
         <div className="max-h-[30rem] overflow-y-auto border rounded"> 
-          <table className="min-w-full bg-white">
+          <table id="liquorSummaryTable" className="min-w-full bg-white">
             <thead className="bg-blue-50 sticky top-0 shadow-sm z-10">
               <tr>
                 <th className="p-3 text-left text-sm font-semibold">Item</th>
@@ -123,7 +130,6 @@ export default function LiquorSummary({ displayModal }: LiquorSummaryProps) {
             </tbody>
           </table>
         </div>
-      </div>
 
       {editingItem && (
         <EditStockItemModal

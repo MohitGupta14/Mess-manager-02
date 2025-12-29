@@ -5,6 +5,7 @@ import { useState, useMemo } from 'react';
 import { useMessData } from '@/hooks/useMessData';
 import { StockItem, MinStockLevel } from '@/lib/types';
 import EditStockItemModal from '@/components/Modals/EditStockItemModal';
+import PrintExportButtons from '@/components/PrintExportButtons';
 
 interface StockSummaryProps {
   displayModal: (text: string, type: string) => void;
@@ -52,7 +53,14 @@ export default function StockSummary({ displayModal }: StockSummaryProps) {
 
   return (
     <div className="p-6 sm:p-8 rounded-xl w-full bg-white shadow-lg">
-      <h1 className="text-2xl sm:text-3xl font-bold text-center text-gray-800 mb-6">Stock Summary</h1>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Stock Summary</h1>
+        <PrintExportButtons
+          tableId="stockSummaryTable"
+          filename="stock-summary"
+          title="Stock Summary Report"
+        />
+      </div>
 
       {/* NEW: Search Bar */}
       <input
@@ -63,7 +71,7 @@ export default function StockSummary({ displayModal }: StockSummaryProps) {
         className="mb-4 p-2 border rounded w-full max-w-md"
       />
 
-      <div className="overflow-x-auto">
+      <div id="stockSummaryTable" className="overflow-x-auto">
         {/* NEW: Wrapper for scrollable table body with fixed header */}
         <div className="max-h-[30rem] overflow-y-auto border rounded"> 
           <table className="min-w-full bg-white">

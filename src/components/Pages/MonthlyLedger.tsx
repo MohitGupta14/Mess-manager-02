@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useMessData } from '@/hooks/useMessData';
+import PrintExportButtons from '@/components/PrintExportButtons';
 interface MonthlyLedgerProps {
   displayModal: (text: string, type: string) => void;
 }
@@ -102,7 +103,7 @@ export default function MonthlyLedger({ displayModal }: MonthlyLedgerProps) {
       </h1>
 
       {/* Date Filters */}
-      <div className="flex justify-center items-center gap-4 mb-8 p-4 bg-gray-100 rounded-lg">
+      <div className="flex  items-center gap-4 mb-8 p-4 bg-gray-100 rounded-lg">
         <select
           name="month"
           value={selectedDate.month}
@@ -128,43 +129,52 @@ export default function MonthlyLedger({ displayModal }: MonthlyLedgerProps) {
             </option>
           ))}
         </select>
+        <div className="ml-auto">
+        <PrintExportButtons
+          tableId="monthlyLedgerTable"
+          filename={`monthly-ledger-${selectedDate.month}-${selectedDate.year}`}
+          title={`Monthly Ledger Report - ${months.find(m => m.value === selectedDate.month)?.name} ${selectedDate.year}`}
+        />
+        </div>
       </div>
 
       {/* Ledger Table */}
       {/* Consumption Summary */}
-      <div className="mb-6 p-4 bg-white rounded-lg shadow-sm border">
-        <h2 className="text-xl font-semibold text-gray-800 mb-3">Consumption Summary for {months.find(m => m.value === selectedDate.month)?.name} {selectedDate.year}</h2>
-        {consumptionSummary.items.length === 0 ? (
-          <p className="text-gray-600">No consumption data for this month.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full bg-white border">
-              <thead className="bg-blue-50">
-                <tr>
-                  <th className="p-3 text-left text-sm font-semibold">Item</th>
-                  <th className="p-3 text-right text-sm font-semibold">Quantity</th>
-                  <th className="p-3 text-right text-sm font-semibold">Cost (₹)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {consumptionSummary.items.map((it) => (
-                  <tr key={it.itemName} className="border-b">
-                    <td className="p-3">{it.itemName}</td>
-                    <td className="p-3 text-right">{Number(it.quantity).toFixed(2)}</td>
-                    <td className="p-3 text-right">₹{it.cost.toFixed(2)}</td>
+      <div id="monthlyLedgerTable" className="overflow-x-auto mb-8">
+        <div className="mb-6 p-4 bg-white rounded-lg shadow-sm border">
+          <h2 className="text-xl font-semibold text-gray-800 mb-3">Consumption Summary for {months.find(m => m.value === selectedDate.month)?.name} {selectedDate.year}</h2>
+          {consumptionSummary.items.length === 0 ? (
+            <p className="text-gray-600">No consumption data for this month.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full bg-white border">
+                <thead className="bg-blue-50">
+                  <tr>
+                    <th className="p-3 text-left text-sm font-semibold">Item</th>
+                    <th className="p-3 text-right text-sm font-semibold">Quantity</th>
+                    <th className="p-3 text-right text-sm font-semibold">Cost (₹)</th>
                   </tr>
-                ))}
-              </tbody>
-              <tfoot className="bg-blue-100 font-bold">
-                <tr>
-                  <td className="p-3">Total</td>
-                  <td className="p-3"></td>
-                  <td className="p-3 text-right">₹{consumptionSummary.grandTotal.toFixed(2)}</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        )}
+                </thead>
+                <tbody>
+                  {consumptionSummary.items.map((it) => (
+                    <tr key={it.itemName} className="border-b">
+                      <td className="p-3">{it.itemName}</td>
+                      <td className="p-3 text-right">{Number(it.quantity).toFixed(2)}</td>
+                      <td className="p-3 text-right">₹{it.cost.toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot className="bg-blue-100 font-bold">
+                  <tr>
+                    <td className="p-3">Total</td>
+                    <td className="p-3"></td>
+                    <td className="p-3 text-right">₹{consumptionSummary.grandTotal.toFixed(2)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

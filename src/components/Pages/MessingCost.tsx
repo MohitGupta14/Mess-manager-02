@@ -4,6 +4,7 @@
 import { useMemo, useState } from 'react';
 import { useMessData } from '@/hooks/useMessData';
 import { DailyMessingEntry, MessMember, StockItem } from '@/lib/types';
+import PrintExportButtons from '@/components/PrintExportButtons';
 
 interface MessingCostProps {
   displayModal: (text: string, type: string) => void;
@@ -275,7 +276,14 @@ export default function MessingCost({ displayModal }: MessingCostProps) {
       )}
 
       {/* --- Member Summary Table & Search --- */}
-      <h2 className="text-xl font-semibold mb-3">Member Summary</h2>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+        <h2 className="text-xl font-semibold">Member Summary</h2>
+        <PrintExportButtons
+          tableId="messingCostTable"
+          filename="messing-cost"
+          title={`Messing Cost Report (${startDate} to ${endDate})`}
+        />
+      </div>
       
       <input
         type="text"
@@ -285,8 +293,8 @@ export default function MessingCost({ displayModal }: MessingCostProps) {
         className="mb-4 p-2 border rounded-lg w-full max-w-sm shadow-sm"
       />
 
-      <div className="overflow-x-auto border rounded-lg shadow-md">
-        <div className="max-h-[30rem] overflow-y-auto"> {/* Scrollable container for the main table */}
+      <div id="messingCostTable" className="overflow-x-auto border rounded-lg shadow-md">
+        <div className="max-h-[30rem] overflow-y-auto">
           <table className="min-w-full bg-white">
             <thead className="bg-blue-50 sticky top-0 shadow-sm z-10">
               <tr>

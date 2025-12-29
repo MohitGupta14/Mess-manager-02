@@ -4,6 +4,7 @@
 import { useState, useMemo } from "react";
 import { useMessData } from "@/hooks/useMessData";
 import { MessMember } from "@/lib/types";
+import PrintExportButtons from "@/components/PrintExportButtons";
 
 interface DailyMessingProps {
   displayModal: (text: string, type: string) => void;
@@ -21,7 +22,7 @@ export default function DailyMessing({ displayModal }: DailyMessingProps) {
     "Breakfast"
   );
   const [items, setItems] = useState([{ itemName: "", quantity: "" }]);
-  
+
   // State for Members Selection and Search
   const [members, setMembers] = useState<string[]>([]);
   const [memberSearchTerm, setMemberSearchTerm] = useState("");
@@ -51,20 +52,22 @@ export default function DailyMessing({ displayModal }: DailyMessingProps) {
         String(m.memberId).toLowerCase().includes(term)
     );
   }, [messMembers, memberSearchTerm]);
-  
+
   // Logic for "Select All" button
-  const areAllFilteredSelected = filteredMembers.length > 0 && filteredMembers.every((m: MessMember) => members.includes(m.memberId));
+  const areAllFilteredSelected =
+    filteredMembers.length > 0 &&
+    filteredMembers.every((m: MessMember) => members.includes(m.memberId));
 
   const handleToggleSelectAll = () => {
     if (areAllFilteredSelected) {
-        // Deselect all currently visible/filtered members
-        const filteredIds = filteredMembers.map((m: MessMember) => m.memberId);
-        setMembers(prev => prev.filter(id => !filteredIds.includes(id)));
+      // Deselect all currently visible/filtered members
+      const filteredIds = filteredMembers.map((m: MessMember) => m.memberId);
+      setMembers((prev) => prev.filter((id) => !filteredIds.includes(id)));
     } else {
-        // Select all currently visible/filtered members
-        const filteredIds = filteredMembers.map((m: MessMember) => m.memberId);
-        // Add unique IDs to the existing selection
-        setMembers(prev => Array.from(new Set([...prev, ...filteredIds])));
+      // Select all currently visible/filtered members
+      const filteredIds = filteredMembers.map((m: MessMember) => m.memberId);
+      // Add unique IDs to the existing selection
+      setMembers((prev) => Array.from(new Set([...prev, ...filteredIds])));
     }
   };
 
@@ -137,7 +140,6 @@ export default function DailyMessing({ displayModal }: DailyMessingProps) {
         Daily Messing
       </h1>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        
         {/* === LEFT COLUMN: Form === */}
         <form
           onSubmit={handleSubmit}
@@ -170,13 +172,14 @@ export default function DailyMessing({ displayModal }: DailyMessingProps) {
               Consumed Items
             </label>
             {items.map((item, i) => (
-              <div key={i} className="flex items-center space-x-2">
+              <div key={i} className="flex items-center gap-2">
+                {/* 1. Select: Reduced padding, smaller font, added h-8 for fixed height */}
                 <select
                   value={item.itemName}
                   onChange={(e) =>
                     handleItemChange(i, "itemName", e.target.value)
                   }
-                  className="p-2 border rounded-lg flex-1 text-sm"
+                  className="flex-1 min-w-0 py-1 px-2 border border-gray-300 rounded text-xs h-8 bg-white truncate"
                 >
                   <option value="">Select Item</option>
                   {nonLiquorItems.map((s) => (
@@ -186,10 +189,22 @@ export default function DailyMessing({ displayModal }: DailyMessingProps) {
                   ))}
                 </select>
 
-                <div className="w-16 text-xs text-gray-500 text-right">
-                    Stock: {nonLiquorItems.find((s) => s.itemName === item.itemName)?.currentQuantity || 0}
+                {/* 2. Stock: Removed fixed width (w-16) to allow auto-fit, added whitespace-nowrap */}
+                <div className="text-[10px] text-gray-500 whitespace-nowrap flex-shrink-0">
+                  Stock:{" "}
+                  <span className="font-medium text-gray-700">
+                    {(() => {
+                      const stock = nonLiquorItems.find(
+                        (s) => s.itemName === item.itemName
+                      );
+                      return stock
+                        ? `${stock.currentQuantity} ${stock.unitOfMeasurement}`
+                        : "0";
+                    })()}
+                  </span>
                 </div>
 
+                {/* 3. Input: Reduced width (w-20 -> w-16), reduced padding */}
                 <input
                   type="number"
                   value={item.quantity}
@@ -197,7 +212,7 @@ export default function DailyMessing({ displayModal }: DailyMessingProps) {
                     handleItemChange(i, "quantity", e.target.value)
                   }
                   placeholder="Qty"
-                  className="p-2 border rounded-lg w-20 text-sm"
+                  className="w-16 py-1 px-2 border border-gray-300 rounded text-xs h-8 text-center"
                   step="0.01"
                 />
               </div>
@@ -218,63 +233,70 @@ export default function DailyMessing({ displayModal }: DailyMessingProps) {
           {/* === MEMBERS SECTION (Scrollbar Fix Applied) === */}
           <div className="flex-1 flex flex-col min-h-0">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-2">
-                <label className="block text-sm font-bold text-gray-800">
-                  Members Present <span className="text-blue-600">({members.length})</span> <span className="text-red-500">*</span>
-                </label>
-                
-                {/* Select All Button */}
-                <button
-                    type="button"
-                    onClick={handleToggleSelectAll}
-                    className={`text-xs px-3 py-1.5 rounded font-medium transition-colors ${
-                        areAllFilteredSelected 
-                        ? "bg-red-100 text-red-700 hover:bg-red-200 border border-red-200" 
-                        : "bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-200"
-                    }`}
-                >
-                    {areAllFilteredSelected ? "Deselect Visible" : "Select Visible"}
-                </button>
+              <label className="block text-sm font-bold text-gray-800">
+                Members Present{" "}
+                <span className="text-blue-600">({members.length})</span>{" "}
+                <span className="text-red-500">*</span>
+              </label>
+
+              {/* Select All Button */}
+              <button
+                type="button"
+                onClick={handleToggleSelectAll}
+                className={`text-xs px-3 py-1.5 rounded font-medium transition-colors ${
+                  areAllFilteredSelected
+                    ? "bg-red-100 text-red-700 hover:bg-red-200 border border-red-200"
+                    : "bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-200"
+                }`}
+              >
+                {areAllFilteredSelected ? "Deselect Visible" : "Select Visible"}
+              </button>
             </div>
 
             {/* Search Bar */}
             <input
-                type="text"
-                placeholder="🔍 Search member name or Service No..."
-                value={memberSearchTerm}
-                onChange={(e) => setMemberSearchTerm(e.target.value)}
-                className="w-full p-2 mb-3 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+              type="text"
+              placeholder="🔍 Search member name or Service No..."
+              value={memberSearchTerm}
+              onChange={(e) => setMemberSearchTerm(e.target.value)}
+              className="w-full p-2 mb-3 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 outline-none"
             />
 
             {/* FIX: Moved border and fixed height/overflow-y-auto to the container holding the grid */}
-            <div className="border rounded-lg bg-white overflow-y-auto h-80"> 
-                <div className="p-1 grid grid-cols-3 xs:grid-cols-4 sm:grid-cols-4 md:grid-cols-5 gap-1 content-start">
-                    {filteredMembers.map((member) => {
-                        const isSelected = members.includes(member.memberId);
-                        return (
-                            <div
-                                key={member.id}
-                                onClick={() => handleMemberToggle(member.memberId)}
-                                className={`
+            <div className="border rounded-lg bg-white overflow-y-auto h-80">
+              <div className="p-1 grid grid-cols-3 xs:grid-cols-4 sm:grid-cols-4 md:grid-cols-5 gap-1 content-start">
+                {filteredMembers.map((member) => {
+                  const isSelected = members.includes(member.memberId);
+                  return (
+                    <div
+                      key={member.id}
+                      onClick={() => handleMemberToggle(member.memberId)}
+                      className={`
                                     p-1 rounded-sm text-center text-xs font-medium cursor-pointer select-none transition-all duration-150 border
                                     flex flex-col justify-center items-center min-h-[3rem] overflow-hidden
-                                    ${isSelected 
-                                        ? "bg-blue-600 text-white border-blue-700 shadow-sm transform scale-[1.01]" 
+                                    ${
+                                      isSelected
+                                        ? "bg-blue-600 text-white border-blue-700 shadow-sm transform scale-[1.01]"
                                         : "bg-white text-gray-700 border-gray-200 hover:bg-gray-100 hover:border-gray-300"
                                     }
                                 `}
-                                title={`${member.name} (${member.memberId})`}
-                            >
-                                <span className="font-semibold truncate w-full leading-tight">{member.name}</span>
-                                <span className="text-[10px] opacity-80 w-full truncate">{member.memberId}</span>
-                            </div>
-                        );
-                    })}
-                    {filteredMembers.length === 0 && (
-                        <div className="col-span-full text-center text-gray-400 py-8 text-sm">
-                            No members found matching "{memberSearchTerm}"
-                        </div>
-                    )}
-                </div>
+                      title={`${member.name} (${member.memberId})`}
+                    >
+                      <span className="font-semibold truncate w-full leading-tight">
+                        {member.name}
+                      </span>
+                      <span className="text-[10px] opacity-80 w-full truncate">
+                        {member.memberId}
+                      </span>
+                    </div>
+                  );
+                })}
+                {filteredMembers.length === 0 && (
+                  <div className="col-span-full text-center text-gray-400 py-8 text-sm">
+                    No members found matching "{memberSearchTerm}"
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -290,58 +312,72 @@ export default function DailyMessing({ displayModal }: DailyMessingProps) {
 
         {/* === RIGHT COLUMN: History (Unchanged) === */}
         <div className="bg-gray-50 p-6 rounded-lg shadow-md h-full flex flex-col">
-          <h2 className="text-xl font-semibold text-gray-800 mb-4 text-center">
-            Recent Entries
-          </h2>
-          <div className="overflow-y-auto flex-1 max-h-[70vh] border rounded-lg bg-white shadow-sm">
-            <table className="min-w-full">
-              <thead className="bg-blue-50 sticky top-0 z-10">
-                <tr>
-                  <th className="py-3 px-3 text-left text-xs font-bold text-gray-600 uppercase border-b">
-                    Date/Meal
-                  </th>
-                  <th className="py-3 px-3 text-left text-xs font-bold text-gray-600 uppercase border-b">
-                    Cost
-                  </th>
-                  <th className="py-3 px-3 text-left text-xs font-bold text-gray-600 uppercase border-b">
-                    Members
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {dailyMessingEntries.slice(0, 20).map((entry) => {
-                  const membersList = Array.isArray(entry.membersPresent)
-                    ? entry.membersPresent
-                    : typeof entry.membersPresent === "string"
-                    ? JSON.parse(entry.membersPresent)
-                    : [];
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4 text-center">
+              Recent Entries
+            </h2>
+            <PrintExportButtons
+              tableId="dailyMessingHistoryTable"
+              filename="daily-messing-history"
+              title="Daily Messing History"
+            />
+          </div>
+          <div id="dailyMessingHistoryTable" className="flex-1 flex flex-col">
+            <div className="overflow-y-auto flex-1 max-h-[70vh] border rounded-lg bg-white shadow-sm">
+              <table className="min-w-full">
+                <thead className="bg-blue-50 sticky top-0 z-10">
+                  <tr>
+                    <th className="py-3 px-3 text-left text-xs font-bold text-gray-600 uppercase border-b">
+                      Date/Meal
+                    </th>
+                    <th className="py-3 px-3 text-left text-xs font-bold text-gray-600 uppercase border-b">
+                      Cost
+                    </th>
+                    <th className="py-3 px-3 text-left text-xs font-bold text-gray-600 uppercase border-b">
+                      Members
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {dailyMessingEntries.slice(0, 20).map((entry) => {
+                    const membersList = Array.isArray(entry.membersPresent)
+                      ? entry.membersPresent
+                      : typeof entry.membersPresent === "string"
+                      ? JSON.parse(entry.membersPresent)
+                      : [];
 
-                  const presentMemberNames = membersList
-                    .map((id: string) => memberNameMap.get(id) || id)
-                    .join(", ");
+                    const presentMemberNames = membersList
+                      .map((id: string) => memberNameMap.get(id) || id)
+                      .join(", ");
 
-                  return (
-                    <tr key={entry.id} className="hover:bg-blue-50/30 transition-colors">
-                      <td className="py-3 px-3 text-sm text-gray-700">
-                        <div className="font-medium">{entry.date}</div>
-                        <div className="text-xs text-gray-500">{entry.mealType}</div>
-                      </td>
-                      <td className="py-3 px-3 text-sm font-semibold text-gray-700">
-                        ₹{entry.totalMealCost?.toFixed(2) || "0.00"}
-                      </td>
-                      <td className="py-3 px-3 text-sm text-gray-600">
-                        <div className="max-h-16 overflow-y-auto text-xs leading-relaxed">
-                          {presentMemberNames}
-                        </div>
-                        <div className="text-xs text-blue-600 font-medium mt-1">
+                    return (
+                      <tr
+                        key={entry.id}
+                        className="hover:bg-blue-50/30 transition-colors"
+                      >
+                        <td className="py-3 px-3 text-sm text-gray-700">
+                          <div className="font-medium">{entry.date}</div>
+                          <div className="text-xs text-gray-500">
+                            {entry.mealType}
+                          </div>
+                        </td>
+                        <td className="py-3 px-3 text-sm font-semibold text-gray-700">
+                          ₹{entry.totalMealCost?.toFixed(2) || "0.00"}
+                        </td>
+                        <td className="py-3 px-3 text-sm text-gray-600">
+                          <div className="max-h-16 overflow-y-auto text-xs leading-relaxed">
+                            {presentMemberNames}
+                          </div>
+                          <div className="text-xs text-blue-600 font-medium mt-1">
                             Count: {membersList.length}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
